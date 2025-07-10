@@ -1,0 +1,8 @@
+{
+  "walkie_talkie_open_menu": {
+    "subtitles": "sounds.walkietalkie.walkie_talkie_open_menu",
+    "sounds": [
+      "walkietalkie:walkie_talkie_open_menu"
+    ]
+  }
+}
