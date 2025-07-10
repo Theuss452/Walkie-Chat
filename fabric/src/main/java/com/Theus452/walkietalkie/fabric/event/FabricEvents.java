@@ -1,0 +1,65 @@
+package com.Theus452.walkietalkie.fabric.event;
+
+import com.Theus452.walkietalkie.item.WalkieTalkieItem;
+import com.Theus452.walkietalkie.platform.Platform;
+import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.ItemStack;
+
+public class FabricEvents {
+    public static void register() {
+        ServerMessageEvents.ALLOW_CHAT_MESSAGE.register((message, sender, typeKey) -> {
+            ItemStack mainHand = sender.getMainHandItem();
+
+            if (mainHand.getItem() instanceof WalkieTalkieItem) {
+                // Lógica do Walkie-Talkie
+                String frequency = WalkieTalkieItem.getFrequency(mainHand);
+                if (frequency.isEmpty()) {
+                    sender.sendSystemMessage(Component.translatable("message.walkietalkie.define.frequency"));
+                    return false; // Cancela a mensagem
+                }
+
+                // Cria a mensagem customizada.
+                Component walkieTalkieMessage = Component.literal("§a[Walkie-Talkie] §f<" + sender.getDisplayName().getString() + ">§f " + message.signedContent());
+
+                // Envia para o próprio jogador
+                sender.sendSystemMessage(walkieTalkieMessage, false);
+
+                // Envia para outros jogadores na mesma frequência
+                for (ServerPlayer receiver : sender.getServer().getPlayerList().getPlayers()) {
+                    if (receiver == sender) continue;
+                    for (ItemStack inventoryStack : receiver.getInventory().items) {
+                        if (inventoryStack.getItem() instanceof WalkieTalkieItem) {
+                            if (frequency.equals(WalkieTalkieItem.getFrequency(inventoryStack))) {
+                                receiver.sendSystemMessage(walkieTalkieMessage, false);
+                                break;
+                            }
+                        }
+                    }
+                }
+                return false; // Cancela a mensagem original
+
+            } else {
+                // Lógica do chat de proximidade
+                Component formattedMessage = Component.translatable("chat.type.text", sender.getDisplayName(), Component.literal(message.signedContent()));
+                double currentChatRange = Platform.HELPER.getChatRange();
+                int recipientsFound = 0;
+
+                for (ServerPlayer recipient : sender.getServer().getPlayerList().getPlayers()) {
+                    if (sender.distanceToSqr(recipient) <= currentChatRange * currentChatRange) {
+                        recipient.sendSystemMessage(formattedMessage, false);
+                        recipientsFound++;
+                    }
+                }
+
+                if (recipientsFound <= 1 && sender.getServer().getPlayerList().getPlayerCount() > 1) {
+                    sender.sendSystemMessage(Component.translatable("message.walkietalkie.no_one_nearby")
+                            .withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC));
+                }
+                return false; // Cancela a mensagem original
+            }
+        });
+    }
+}
