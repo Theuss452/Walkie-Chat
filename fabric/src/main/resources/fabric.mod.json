@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "walkietalkie",
+  "version": "${version}",
+  "name": "Walkie Talkie",
+  "description": "This mod adds proximity chat, which prevents the player from chatting if they are not near another player. It also adds a 'Walkie Talkie' item that allows you to chat over long distances with other players on the same frequency.",
+  "authors": [
+    "Theus452"
+  ],
+  "contact": {},
+  "license": "MIT",
+  "icon": "assets/walkietalkie/walkietalkielogo.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.Theus452.walkietalkie.fabric.FabricWalkieTalkieMod"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.15.0",
+    "fabric-api": "*",
+    "minecraft": "~1.20.1"
+  }
+}

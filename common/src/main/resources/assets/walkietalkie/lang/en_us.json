@@ -1,0 +1,18 @@
+{
+  "item.walkietalkie.walkie_talkie": "Walkie-Talkie",
+
+  "sounds.walkietalkie.walkie_talkie_open_menu": "Walkie Talkie Menu",
+
+  "creativetab.walkietalkie_tab": "Walkie Talkie Mod",
+
+  "message.walkietalkie.no_one_nearby": "There is no one nearby to hear you. Use a Walkie-Talkie!",
+  "message.walkietalkie.define.frequency": "No defined frequency!",
+  "message.walkietalkie.frequency": "Frequency",
+  "message.walkietalkie.save.frequency": "Save",
+  "message.walkietalkie.title.screen": "Walkie-Talkie Frequency",
+  "command.walkietalkie.setrange": "Proximity chat distance set to %s blocks.",
+  "message.walkietalkie.join.self": "You joined channel %s.",
+  "message.walkietalkie.join.other": "%s joined the channel.",
+  "message.walkietalkie.leave.other": "%s left the channel.",
+  "gui.walkietalkie.frequency.suggestion": "Enter a value (1-1000)"
+}
