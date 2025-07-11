@@ -1,11 +1,12 @@
 {
   "required": true,
-  "package": "com.Theus452.mixin",
+  "package": "com.theus452.mixin",
   "compatibilityLevel": "JAVA_17",
   "minVersion": "0.8",
   "client": [
   ],
   "mixins": [
+    "ServerGamePacketListenerImplMixin"
   ],
   "injectors": {
     "defaultRequire": 1
