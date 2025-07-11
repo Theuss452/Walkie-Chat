@@ -1,10 +1,9 @@
 package com.Theus452.walkietalkie.item;
 
-
-import com.Theus452.walkietalkie.platform.Platform;
 import com.Theus452.walkietalkie.networking.packet.PacketSetFrequency;
+import com.Theus452.walkietalkie.platform.Platform;
+import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
@@ -12,7 +11,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 
-
+import java.util.Objects;
 
 public class WalkieTalkieScreen extends Screen {
 
@@ -35,13 +34,13 @@ public class WalkieTalkieScreen extends Screen {
         this.frequencyBox.setFilter(text -> text.isEmpty() || text.matches("[0-9]*"));
         this.addWidget(this.frequencyBox);
 
-        this.addRenderableWidget(Button.builder(Component.translatable("message.walkietalkie.save.frequency"), this::onSave)
-                .bounds(boxX, boxY + 25, boxWidth, 20)
-                .build());
+
+        this.addRenderableWidget(new Button(boxX, boxY + 25, boxWidth, 20,
+                Component.translatable("message.walkietalkie.save.frequency"), this::onSave));
 
         if (this.minecraft != null && this.minecraft.player != null) {
             ItemStack heldItem = this.minecraft.player.getItemInHand(this.hand);
-            if(heldItem.getItem() instanceof WalkieTalkieItem) {
+            if (heldItem.getItem() instanceof WalkieTalkieItem) {
                 this.frequencyBox.setValue(WalkieTalkieItem.getFrequency(heldItem));
             }
         }
@@ -68,8 +67,6 @@ public class WalkieTalkieScreen extends Screen {
             frequency = 1;
         }
 
-
-
         Platform.HELPER.sendToServer(new PacketSetFrequency(String.valueOf(frequency), this.hand));
 
         if (this.minecraft != null) {
@@ -78,23 +75,23 @@ public class WalkieTalkieScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics guiGraphics, int pMouseX, int pMouseY, float pPartialTick) {
-        this.renderBackground(guiGraphics);
-        guiGraphics.drawCenteredString(this.font, this.title, this.width / 2, this.height / 2 - 40, 0xFFFFFF);
+    public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
+        this.renderBackground(poseStack);
+        drawCenteredString(poseStack, this.font, this.title, this.width / 2, this.height / 2 - 40, 0xFFFFFF);
 
-        this.frequencyBox.render(guiGraphics, pMouseX, pMouseY, pPartialTick);
+        this.frequencyBox.render(poseStack, mouseX, mouseY, partialTick);
 
         if (this.frequencyBox.getValue().isEmpty() && !this.frequencyBox.isFocused()) {
-            guiGraphics.drawString(this.font,
+            int color = Objects.requireNonNull(ChatFormatting.DARK_GRAY.getColor());
+            drawString(poseStack, this.font,
                     Component.translatable("gui.walkietalkie.frequency.suggestion"),
-                    this.frequencyBox.getX() + 5,
-                    this.frequencyBox.getY() + (this.frequencyBox.getHeight() - 8) / 2,
-                    ChatFormatting.DARK_GRAY.getColor());
+                    this.frequencyBox.x + 5,
+                    this.frequencyBox.y + (this.frequencyBox.getHeight() - 8) / 2,
+                    color);
         }
 
-        super.render(guiGraphics, pMouseX, pMouseY, pPartialTick);
+        super.render(poseStack, mouseX, mouseY, partialTick);
     }
-
 
     @Override
     public boolean isPauseScreen() {

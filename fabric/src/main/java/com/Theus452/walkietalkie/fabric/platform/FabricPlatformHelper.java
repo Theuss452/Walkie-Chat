@@ -16,9 +16,8 @@ public class FabricPlatformHelper implements IPlatformHelper {
     @Override
     public void sendToServer(Object packet) {
         
-        if (packet instanceof PacketSetFrequency) {
-            PacketSetFrequency p = (PacketSetFrequency) packet;
-            
+        if (packet instanceof PacketSetFrequency p) {
+
             FriendlyByteBuf buf = PacketByteBufs.create();
             
             p.toBytes(buf);

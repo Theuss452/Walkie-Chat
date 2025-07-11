@@ -39,7 +39,6 @@ dependencies {
 }
 
 processResources {
-    // Define as variáveis que o mods.toml pode usar
     inputs.properties(
             mod_id: mod_id,
             mod_name: mod_name,
@@ -53,7 +52,6 @@ processResources {
             loader_version_range: loader_version_range
     )
 
-    // Encontra o arquivo mods.toml e substitui as variáveis
     filesMatching('META-INF/mods.toml') {
         expand(inputs.properties)
     }

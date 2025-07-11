@@ -7,8 +7,8 @@ architectury {
     common("forge", "fabric")
 }
 
-// A seção 'loom' que continha a linha do access widener foi removida.
-// Se você não precisa de um Access Widener, não precisa desta seção aqui.
+
+
 
 dependencies {
     // We depend on fabric loader here to use the fabric @Environment annotation

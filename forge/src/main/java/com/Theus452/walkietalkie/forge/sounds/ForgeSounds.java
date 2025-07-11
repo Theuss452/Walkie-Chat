@@ -13,7 +13,8 @@ public class ForgeSounds {
             DeferredRegister.create(ForgeRegistries.SOUND_EVENTS, WalkieTalkieMod.MOD_ID);
 
     public static final RegistryObject<SoundEvent> WALKIE_TALKIE_OPEN_MENU_REG_OBJ = SOUND_EVENTS.register("walkie_talkie_open_menu",
-            () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(WalkieTalkieMod.MOD_ID, "walkie_talkie_open_menu")));
+
+            () -> new SoundEvent(new ResourceLocation(WalkieTalkieMod.MOD_ID, "walkie_talkie_open_menu")));
 
     public static void register(IEventBus eventBus) {
         SOUND_EVENTS.register(eventBus);

@@ -21,13 +21,12 @@ public class FabricModConfigs {
     private static final String CHAT_RANGE_KEY = "chatDistance";
 
     public static void register() {
-        
         try {
             if (!Files.exists(CONFIG_PATH)) {
                 LOGGER.info("Criando arquivo de configuração padrão para o Walkie-Talkie.");
-                save(); 
+                save();
             }
-            load(); 
+            load();
         } catch (IOException e) {
             LOGGER.error("Falha ao criar ou carregar o arquivo de configuração do Walkie-Talkie.", e);
         }
@@ -37,7 +36,6 @@ public class FabricModConfigs {
         try (FileInputStream stream = new FileInputStream(CONFIG_PATH.toFile())) {
             properties.load(stream);
 
-            
             String chatRangeValue = properties.getProperty(CHAT_RANGE_KEY, String.valueOf(35.0));
             try {
                 chatRange = Double.parseDouble(chatRangeValue);
@@ -55,10 +53,7 @@ public class FabricModConfigs {
 
     public static void save() throws IOException {
         try (FileOutputStream stream = new FileOutputStream(CONFIG_PATH.toFile())) {
-            
             properties.setProperty(CHAT_RANGE_KEY, String.valueOf(chatRange));
-
-            
             properties.store(stream, "Walkie-Talkie Mod Configurations");
         }
     }
@@ -70,7 +65,7 @@ public class FabricModConfigs {
     public static void setChatRange(double newRange) {
         chatRange = newRange;
         try {
-            save(); 
+            save();
         } catch (IOException e) {
             LOGGER.error("Falha ao salvar a configuração após alteração via comando.", e);
         }

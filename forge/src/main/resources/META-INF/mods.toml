@@ -2,13 +2,14 @@
 modLoader="javafml"
 loaderVersion="${loader_version_range}"
 license="${mod_license}"
+mixinConfigs = [ "walkietalkie.forge.mixins.json" ]
 
 [[mods]]
 
 modId="${mod_id}"
 version="${mod_version}"
 displayName="${mod_name}"
-logoFile="walkie_logo.png"
+logoFile="walkietalkielogo.png"
 authors="${mod_authors}"
 description='''${mod_description}'''
 

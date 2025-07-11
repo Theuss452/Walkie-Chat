@@ -6,6 +6,7 @@
   "client": [
   ],
   "mixins": [
+    "ServerGamePacketListenerImplMixin"
   ],
   "injectors": {
     "defaultRequire": 1

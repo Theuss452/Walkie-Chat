@@ -13,7 +13,7 @@ public class ForgeItems {
             DeferredRegister.create(ForgeRegistries.ITEMS, WalkieTalkieMod.MOD_ID);
 
     public static final RegistryObject<Item> WALKIETALKIE_REG_OBJ = ITEMS.register("walkie_talkie",
-            () -> new WalkieTalkieItem(new Item.Properties().stacksTo(1)));
+            () -> new WalkieTalkieItem(new Item.Properties().stacksTo(1).tab(ForgeCreativeTabs.WALKIETALKIE_TAB)));
 
     public static void register(IEventBus eventBus) {
         ITEMS.register(eventBus);

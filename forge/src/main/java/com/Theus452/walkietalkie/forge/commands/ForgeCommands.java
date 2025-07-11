@@ -8,6 +8,7 @@ import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 
 public class ForgeCommands {
+
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal("walkietalkie")
                 .then(Commands.literal("setrange")
@@ -19,7 +20,7 @@ public class ForgeCommands {
                                     ForgeModConfigs.CHAT_RANGE.set(distance);
                                     ForgeModConfigs.SPEC.save();
 
-                                    command.getSource().sendSuccess(() -> Component.translatable("command.walkietalkie.setrange", distance), true);
+                                    command.getSource().sendSuccess(Component.translatable("command.walkietalkie.setrange", distance), true);
                                     return 1;
                                 })
                         )

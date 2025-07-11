@@ -11,7 +11,6 @@ public class FabricPacketHandler {
     public static void registerC2SPackets() {
         ServerPlayNetworking.registerGlobalReceiver(SET_FREQUENCY_ID, (server, player, handler, buf, responseSender) -> {
             PacketSetFrequency packet = new PacketSetFrequency(buf);
-
             server.execute(() -> PacketSetFrequency.handle(packet, player));
         });
     }
