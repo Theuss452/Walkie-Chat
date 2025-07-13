@@ -1,8 +1,9 @@
 package com.Theus452.walkietalkie.item;
 
 import com.Theus452.walkietalkie.sound.ModSounds;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
@@ -18,18 +19,24 @@ public class WalkieTalkieItem extends Item {
         super(pProperties);
     }
 
-    @Override
-    public InteractionResultHolder<ItemStack> use(Level pLevel, Player pPlayer, InteractionHand pUsedHand) {
-        ItemStack itemStack = pPlayer.getItemInHand(pUsedHand);
 
-        
-        if (pLevel.isClientSide()) {
-            Minecraft.getInstance().setScreen(new WalkieTalkieScreen(pUsedHand));
-            Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(ModSounds.WALKIE_TALKIE_OPEN_MENU.get(), 1.0F));
+    @Override
+    public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
+        ItemStack itemStack = player.getItemInHand(hand);
+
+        if (level.isClientSide()) {
+            openScreen(hand);
         }
 
-        return InteractionResultHolder.success(itemStack);
+        return InteractionResultHolder.sidedSuccess(itemStack, level.isClientSide());
     }
+
+    @Environment(EnvType.CLIENT)
+    private void openScreen(InteractionHand hand) {
+        Minecraft.getInstance().player.playSound(ModSounds.WALKIE_TALKIE_OPEN_MENU.get(), 1.0F, 1.0F);
+        Minecraft.getInstance().setScreen(new WalkieTalkieScreen(hand));
+    }
+
 
 
     public static void setFrequency(ItemStack stack, String frequency) {

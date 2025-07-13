@@ -19,9 +19,6 @@ public class FabricWalkieTalkieMod implements ModInitializer {
     public void onInitialize() {
         LOGGER.info("Inicializando Walkie-Talkie Mod para Fabric...");
 
-        
-
-        
         FabricItems.register();
         FabricSounds.register();
         FabricCreativeTabs.register();
