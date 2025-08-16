@@ -3,8 +3,6 @@ package com.Theus452.walkietalkie.item;
 
 import com.Theus452.walkietalkie.platform.Platform;
 import com.Theus452.walkietalkie.networking.packet.PacketSetFrequency;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -15,9 +13,7 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 
 
-@Environment(EnvType.CLIENT)
 public class WalkieTalkieScreen extends Screen {
-
     private EditBox frequencyBox;
     private final InteractionHand hand;
 

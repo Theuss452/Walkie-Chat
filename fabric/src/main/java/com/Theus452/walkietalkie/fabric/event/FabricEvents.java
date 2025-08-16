@@ -14,20 +14,16 @@ public class FabricEvents {
             ItemStack mainHand = sender.getMainHandItem();
 
             if (mainHand.getItem() instanceof WalkieTalkieItem) {
-                // Lógica do Walkie-Talkie
                 String frequency = WalkieTalkieItem.getFrequency(mainHand);
                 if (frequency.isEmpty()) {
                     sender.sendSystemMessage(Component.translatable("message.walkietalkie.define.frequency"));
-                    return false; // Cancela a mensagem
+                    return false;
                 }
 
-                // Cria a mensagem customizada.
                 Component walkieTalkieMessage = Component.literal("§a[Walkie-Talkie] §f<" + sender.getDisplayName().getString() + ">§f " + message.signedContent());
 
-                // Envia para o próprio jogador
                 sender.sendSystemMessage(walkieTalkieMessage, false);
 
-                // Envia para outros jogadores na mesma frequência
                 for (ServerPlayer receiver : sender.getServer().getPlayerList().getPlayers()) {
                     if (receiver == sender) continue;
                     for (ItemStack inventoryStack : receiver.getInventory().items) {
@@ -39,10 +35,9 @@ public class FabricEvents {
                         }
                     }
                 }
-                return false; // Cancela a mensagem original
+                return false;
 
             } else {
-                // Lógica do chat de proximidade
                 Component formattedMessage = Component.translatable("chat.type.text", sender.getDisplayName(), Component.literal(message.signedContent()));
                 double currentChatRange = Platform.HELPER.getChatRange();
                 int recipientsFound = 0;
@@ -58,7 +53,7 @@ public class FabricEvents {
                     sender.sendSystemMessage(Component.translatable("message.walkietalkie.no_one_nearby")
                             .withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC));
                 }
-                return false; // Cancela a mensagem original
+                return false;
             }
         });
     }

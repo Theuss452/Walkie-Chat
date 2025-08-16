@@ -16,24 +16,24 @@ public class ForgeEvents {
         ServerPlayer sender = event.getPlayer();
         ItemStack mainHand = sender.getMainHandItem();
 
-        
+        // Cancela a mensagem original em ambos os casos.
         event.setCanceled(true);
 
         if (mainHand.getItem() instanceof WalkieTalkieItem) {
-            
+            // Lógica do Walkie-Talkie
             String frequency = WalkieTalkieItem.getFrequency(mainHand);
             if (frequency.isEmpty()) {
                 sender.sendSystemMessage(Component.translatable("message.walkietalkie.define.frequency"));
                 return;
             }
 
-            
+            // Cria a mensagem customizada, exatamente como na sua classe original.
             Component walkieTalkieMessage = Component.literal("§a[Walkie-Talkie] §f<" + sender.getDisplayName().getString() + ">§f " + event.getRawText());
 
-            
+            // Envia para o próprio jogador
             sender.sendSystemMessage(walkieTalkieMessage);
 
-            
+            // Envia para outros jogadores na mesma frequência
             for (ServerPlayer receiver : sender.getServer().getPlayerList().getPlayers()) {
                 if (receiver == sender) continue;
                 for (ItemStack inventoryStack : receiver.getInventory().items) {
@@ -46,7 +46,7 @@ public class ForgeEvents {
                 }
             }
         } else {
-            
+            // Lógica do chat de proximidade
             Component formattedMessage = Component.translatable("chat.type.text", sender.getDisplayName(), Component.literal(event.getRawText()));
             double currentChatRange = Platform.HELPER.getChatRange();
             int recipientsFound = 0;

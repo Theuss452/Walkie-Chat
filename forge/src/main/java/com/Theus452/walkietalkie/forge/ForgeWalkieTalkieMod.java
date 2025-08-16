@@ -43,8 +43,7 @@ public class ForgeWalkieTalkieMod {
         
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::addCreative);
-        MinecraftForge.EVENT_BUS.register(new ForgeEvents()); 
-        
+        MinecraftForge.EVENT_BUS.register(ForgeEvents.class);
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {
