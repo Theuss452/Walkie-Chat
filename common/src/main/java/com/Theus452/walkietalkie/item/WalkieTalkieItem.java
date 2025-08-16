@@ -1,8 +1,6 @@
 package com.Theus452.walkietalkie.item;
 
-import com.Theus452.walkietalkie.sound.ModSounds;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import com.Theus452.walkietalkie.proxy.Proxy;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
@@ -11,7 +9,6 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
-
 public class WalkieTalkieItem extends Item {
 
     public WalkieTalkieItem(Properties pProperties) {
@@ -19,18 +16,15 @@ public class WalkieTalkieItem extends Item {
     }
 
     @Override
-    public InteractionResultHolder<ItemStack> use(Level pLevel, Player pPlayer, InteractionHand pUsedHand) {
-        ItemStack itemStack = pPlayer.getItemInHand(pUsedHand);
+    public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
+        ItemStack itemStack = player.getItemInHand(hand);
 
-        
-        if (pLevel.isClientSide()) {
-            Minecraft.getInstance().setScreen(new WalkieTalkieScreen(pUsedHand));
-            Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(ModSounds.WALKIE_TALKIE_OPEN_MENU.get(), 1.0F));
+        if (level.isClientSide()) {
+            Proxy.proxy.openWalkieTalkieScreen(hand);
         }
 
-        return InteractionResultHolder.success(itemStack);
+        return InteractionResultHolder.sidedSuccess(itemStack, level.isClientSide());
     }
-
 
     public static void setFrequency(ItemStack stack, String frequency) {
         CompoundTag tag = stack.getOrCreateTag();

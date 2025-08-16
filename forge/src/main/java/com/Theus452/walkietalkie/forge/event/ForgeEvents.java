@@ -1,9 +1,9 @@
 package com.Theus452.walkietalkie.forge.event;
 
+import com.mojang.brigadier.CommandDispatcher;
 import com.Theus452.walkietalkie.forge.commands.ForgeCommands;
 import com.Theus452.walkietalkie.item.WalkieTalkieItem;
 import com.Theus452.walkietalkie.platform.Platform;
-import com.mojang.brigadier.CommandDispatcher;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
@@ -26,24 +26,27 @@ public class ForgeEvents {
         ServerPlayer sender = event.getPlayer();
         ItemStack mainHand = sender.getMainHandItem();
 
-        
+
         event.setCanceled(true);
 
         if (mainHand.getItem() instanceof WalkieTalkieItem) {
-            
+
             String frequency = WalkieTalkieItem.getFrequency(mainHand);
             if (frequency.isEmpty()) {
                 sender.sendSystemMessage(Component.translatable("message.walkietalkie.define.frequency"));
                 return;
             }
 
-            
-            Component walkieTalkieMessage = Component.literal("§a[Walkie-Talkie] §f<" + sender.getDisplayName().getString() + ">§f " + event.getRawText());
 
-            
+            Component walkieTalkieMessage = Component.literal("[Walkie-Talkie] ").withStyle(ChatFormatting.GREEN)
+                    .append(Component.literal("<" + sender.getDisplayName().getString() + ">")
+                            .withStyle(ChatFormatting.WHITE))
+                    .append(Component.literal(" " + event.getRawText()).withStyle(ChatFormatting.WHITE));
+
+
             sender.sendSystemMessage(walkieTalkieMessage);
 
-            
+
             for (ServerPlayer receiver : sender.getServer().getPlayerList().getPlayers()) {
                 if (receiver == sender) continue;
                 for (ItemStack inventoryStack : receiver.getInventory().items) {
@@ -56,12 +59,17 @@ public class ForgeEvents {
                 }
             }
         } else {
-            
+
             Component formattedMessage = Component.translatable("chat.type.text", sender.getDisplayName(), Component.literal(event.getRawText()));
             double currentChatRange = Platform.HELPER.getChatRange();
             int recipientsFound = 0;
 
+
+            sender.sendSystemMessage(formattedMessage);
+            recipientsFound++;
+
             for (ServerPlayer recipient : sender.getServer().getPlayerList().getPlayers()) {
+                if (recipient == sender) continue;
                 if (sender.distanceToSqr(recipient) <= currentChatRange * currentChatRange) {
                     recipient.sendSystemMessage(formattedMessage);
                     recipientsFound++;
