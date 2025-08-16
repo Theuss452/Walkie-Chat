@@ -14,5 +14,6 @@
   "message.walkietalkie.join.self": "You joined channel %s.",
   "message.walkietalkie.join.other": "%s joined the channel.",
   "message.walkietalkie.leave.other": "%s left the channel.",
-  "gui.walkietalkie.frequency.suggestion": "Enter a value (1-1000)"
+  "gui.walkietalkie.frequency.suggestion": "Enter a value (1-1000)",
+  "tooltip.walkietalkie.frequency.chat": "§7Frequency: §e%s"
 }

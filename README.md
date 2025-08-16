@@ -44,3 +44,8 @@ To help with long-distance communication, the mod also adds a special **"Walkie 
 • Available for Forge and Fabric
 
 • Multiplayer.
+
+# Credits:
+This mod was inspired by the incredible work of **Flaton** on the mod **Walkie-Talkie**.
+
+• Check out the mod here: https://www.curseforge.com/minecraft/mc-mods/walkie-talkie
