@@ -14,5 +14,6 @@
   "message.walkietalkie.join.self": "Entraste al canal %s.",
   "message.walkietalkie.join.other": " %s entró al canal.§r",
   "message.walkietalkie.leave.other": "%s salió del canal.§r",
-  "gui.walkietalkie.frequency.suggestion": "Ingrese un valor (1-1000)"
+  "gui.walkietalkie.frequency.suggestion": "Ingrese un valor (1-1000)",
+  "tooltip.walkietalkie.frequency.chat": "§7Frecuencia: §e%s"
 }
