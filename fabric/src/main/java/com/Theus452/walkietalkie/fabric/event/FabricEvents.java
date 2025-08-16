@@ -44,7 +44,7 @@ public class FabricEvents {
             } else {
                 
                 Component formattedMessage = Component.translatable("chat.type.text", sender.getDisplayName(), Component.literal(message.signedContent()));
-                double currentChatRange = Platform.HELPER.getChatRange();
+                double currentChatRange = Platform.getHelper().getChatRange();
                 int recipientsFound = 0;
 
                 for (ServerPlayer recipient : sender.getServer().getPlayerList().getPlayers()) {

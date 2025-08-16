@@ -5,8 +5,8 @@
 
   "creativetab.walkietalkie_tab": "Walkie Talkie Mod",
 
-  "message.walkietalkie.no_one_nearby": "No hay nadie cerca para escucharte. ¡Usa un Walkie-Talkie!",
-  "message.walkietalkie.define.frequency": "¡Sin frecuencia definida!",
+  "message.walkietalkie.no_one_nearby": "§7No hay nadie cerca para escucharte. ¡Usa un Walkie-Talkie!",
+  "message.walkietalkie.define.frequency": "§7¡Sin frecuencia definida!",
   "message.walkietalkie.frequency": "Frecuencia",
   "message.walkietalkie.save.frequency": "Guardar",
   "message.walkietalkie.title.screen": "Frecuencia del Walkie-Talkie",
