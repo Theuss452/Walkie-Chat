@@ -14,6 +14,9 @@
   "entrypoints": {
     "main": [
       "com.Theus452.walkietalkie.fabric.FabricWalkieTalkieMod"
+    ],
+    "client": [
+      "com.Theus452.walkietalkie.fabric.client.walkietalkieFabricClient"
     ]
   },
   "mixins": [
