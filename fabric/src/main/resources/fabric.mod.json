@@ -2,13 +2,13 @@
   "schemaVersion": 1,
   "id": "walkietalkie",
   "version": "${version}",
-  "name": "Walkie Talkie",
+  "name": "Walkie Chat",
   "description": "This mod adds proximity chat, which prevents the player from chatting if they are not near another player. It also adds a 'Walkie Talkie' item that allows you to chat over long distances with other players on the same frequency.",
   "authors": [
     "Theus452"
   ],
   "contact": {},
-  "license": "All Rights Reserved",
+  "license": "MIT",
   "icon": "assets/walkietalkie/walkietalkielogo.png",
   "environment": "*",
   "entrypoints": {

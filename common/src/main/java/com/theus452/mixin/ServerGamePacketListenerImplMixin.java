@@ -4,12 +4,14 @@ import com.theus452.walkietalkie.item.WalkieTalkieItem;
 import com.theus452.walkietalkie.platform.Platform;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.protocol.game.ServerboundChatPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique; 
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -18,6 +20,29 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class ServerGamePacketListenerImplMixin {
 
     @Shadow public ServerPlayer player;
+
+    @Unique 
+    private int walkietalkie$countWalkieTalkies(ServerPlayer player) {
+        int count = 0;
+        for (ItemStack stack : player.getInventory().items) {
+            if (stack.getItem() instanceof WalkieTalkieItem) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    @Unique 
+    private MutableComponent walkietalkie$createWalkieTalkieMessage(ServerPlayer sender, String rawText, String frequency, boolean showFrequency) {
+        MutableComponent prefix;
+        if (showFrequency) {
+            prefix = Component.literal("§a[Walkie-Talkie]§7[" + frequency + "]");
+        } else {
+            prefix = Component.literal("§a[Walkie-Talkie]");
+        }
+        Component messageBody = Component.literal(" §f<" + sender.getDisplayName().getString() + "> " + rawText);
+        return prefix.append(messageBody);
+    }
 
     @Inject(method = "handleChat", at = @At("HEAD"), cancellable = true)
     private void onHandleChat(ServerboundChatPacket packet, CallbackInfo ci) {
@@ -36,17 +61,22 @@ public class ServerGamePacketListenerImplMixin {
                 return;
             }
 
-            Component walkieTalkieMessage = Component.literal("§a[Walkie-Talkie] §f<" + player.getDisplayName().getString() + ">§f " + messageContent);
-            player.sendSystemMessage(walkieTalkieMessage);
+            
+            int senderWalkieTalkieCount = walkietalkie$countWalkieTalkies(player);
+            boolean shouldShowFrequencyToSender = senderWalkieTalkieCount > 1;
+
+            Component senderMessage = walkietalkie$createWalkieTalkieMessage(player, messageContent, frequency, shouldShowFrequencyToSender);
+            player.sendSystemMessage(senderMessage);
 
             for (ServerPlayer receiver : player.getServer().getPlayerList().getPlayers()) {
                 if (receiver == player) continue;
                 for (ItemStack inventoryStack : receiver.getInventory().items) {
-                    if (inventoryStack.getItem() instanceof WalkieTalkieItem) {
-                        if (frequency.equals(WalkieTalkieItem.getFrequency(inventoryStack))) {
-                            receiver.sendSystemMessage(walkieTalkieMessage);
-                            break;
-                        }
+                    if (inventoryStack.getItem() instanceof WalkieTalkieItem && frequency.equals(WalkieTalkieItem.getFrequency(inventoryStack))) {
+                        int receiverWalkieTalkieCount = walkietalkie$countWalkieTalkies(receiver);
+                        boolean shouldShowFrequencyToReceiver = receiverWalkieTalkieCount > 1;
+                        Component receiverMessage = walkietalkie$createWalkieTalkieMessage(player, messageContent, frequency, shouldShowFrequencyToReceiver);
+                        receiver.sendSystemMessage(receiverMessage);
+                        break;
                     }
                 }
             }
@@ -56,7 +86,6 @@ public class ServerGamePacketListenerImplMixin {
             Component formattedMessage = Component.translatable("chat.type.text", player.getDisplayName(), Component.literal(messageContent));
             double currentChatRange = Platform.HELPER.getChatRange();
             int recipientsFound = 0;
-
             for (ServerPlayer recipient : player.getServer().getPlayerList().getPlayers()) {
                 if (player.distanceToSqr(recipient) <= currentChatRange * currentChatRange) {
                     recipient.sendSystemMessage(formattedMessage);
