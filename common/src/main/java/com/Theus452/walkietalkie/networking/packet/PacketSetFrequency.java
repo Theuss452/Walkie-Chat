@@ -1,6 +1,7 @@
 package com.Theus452.walkietalkie.networking.packet;
 
 import com.Theus452.walkietalkie.item.WalkieTalkieItem;
+import com.Theus452.walkietalkie.util.ConnectionManager;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
@@ -12,24 +13,20 @@ public class PacketSetFrequency {
     private final String newFrequency;
     private final InteractionHand hand;
 
-    
     public PacketSetFrequency(String frequency, InteractionHand hand) {
         this.newFrequency = frequency;
         this.hand = hand;
     }
 
-    
     public PacketSetFrequency(FriendlyByteBuf buf) {
         this.newFrequency = buf.readUtf();
         this.hand = buf.readEnum(InteractionHand.class);
     }
 
-
     public void toBytes(FriendlyByteBuf buf) {
         buf.writeUtf(this.newFrequency);
         buf.writeEnum(this.hand);
     }
-
 
     public static void handle(PacketSetFrequency packet, ServerPlayer player) {
         ItemStack stack = player.getItemInHand(packet.hand);
@@ -44,46 +41,45 @@ public class PacketSetFrequency {
             return;
         }
 
-        
-        if (!oldFrequency.isEmpty()) {
+        boolean hadOldFrequency = hasWalkieTalkieWithFrequency(player, oldFrequency, stack);
+
+        if (!oldFrequency.isEmpty() && !hadOldFrequency) {
+            ConnectionManager.cancelDisconnect(player, oldFrequency);
+
             Component leaveMessage = Component.literal("[Walkie-Talkie] ").withStyle(ChatFormatting.GREEN)
                     .append(Component.translatable("message.walkietalkie.leave.other", player.getDisplayName())
                             .withStyle(ChatFormatting.YELLOW));
 
             for (ServerPlayer otherPlayer : player.server.getPlayerList().getPlayers()) {
                 if (otherPlayer == player) continue;
-                for (ItemStack inventoryStack : otherPlayer.getInventory().items) {
-                    if (inventoryStack.getItem() instanceof WalkieTalkieItem) {
-                        if (oldFrequency.equals(WalkieTalkieItem.getFrequency(inventoryStack))) {
-                            otherPlayer.sendSystemMessage(leaveMessage);
-                            break;
+                if (hasWalkieTalkieWithFrequency(otherPlayer, oldFrequency, null)) {
+                    int walkieCount = 0;
+                    for (ItemStack invStack : otherPlayer.getInventory().items) {
+                        if (invStack.getItem() instanceof WalkieTalkieItem) {
+                            walkieCount++;
                         }
+                    }
+
+                    if (walkieCount > 1) {
+                        otherPlayer.sendSystemMessage(leaveMessage.copy().append(Component.literal(" [" + oldFrequency + "]").withStyle(ChatFormatting.GRAY)));
+                    } else {
+                        otherPlayer.sendSystemMessage(leaveMessage);
                     }
                 }
             }
         }
 
         WalkieTalkieItem.setFrequency(stack, packet.newFrequency);
+    }
 
-        
-        if (!packet.newFrequency.isEmpty()) {
-            player.sendSystemMessage(Component.translatable("message.walkietalkie.join.self", packet.newFrequency).withStyle(ChatFormatting.GREEN));
-
-            Component joinMessage = Component.literal("[Walkie-Talkie] ").withStyle(ChatFormatting.GREEN)
-                    .append(Component.translatable("message.walkietalkie.join.other", player.getDisplayName())
-                            .withStyle(ChatFormatting.YELLOW));
-
-            for (ServerPlayer otherPlayer : player.server.getPlayerList().getPlayers()) {
-                if (otherPlayer == player) continue;
-                for (ItemStack inventoryStack : otherPlayer.getInventory().items) {
-                    if (inventoryStack.getItem() instanceof WalkieTalkieItem) {
-                        if (packet.newFrequency.equals(WalkieTalkieItem.getFrequency(inventoryStack))) {
-                            otherPlayer.sendSystemMessage(joinMessage);
-                            break;
-                        }
-                    }
+    private static boolean hasWalkieTalkieWithFrequency(ServerPlayer player, String frequency, ItemStack excludedStack) {
+        for (ItemStack inventoryStack : player.getInventory().items) {
+            if (inventoryStack != excludedStack && inventoryStack.getItem() instanceof WalkieTalkieItem) {
+                if (frequency.equals(WalkieTalkieItem.getFrequency(inventoryStack))) {
+                    return true;
                 }
             }
         }
+        return false;
     }
 }

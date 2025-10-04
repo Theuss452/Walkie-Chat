@@ -7,6 +7,8 @@
     "ItemRendererMixin"
   ],
   "mixins": [
+    "PlayerInventoryMixin",
+    "ServerPlayerMixin"
   ],
   "injectors": {
     "defaultRequire": 1

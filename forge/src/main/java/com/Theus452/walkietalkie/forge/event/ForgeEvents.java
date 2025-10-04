@@ -1,9 +1,10 @@
 package com.Theus452.walkietalkie.forge.event;
 
-import com.mojang.brigadier.CommandDispatcher;
 import com.Theus452.walkietalkie.forge.commands.ForgeCommands;
 import com.Theus452.walkietalkie.item.WalkieTalkieItem;
 import com.Theus452.walkietalkie.platform.Platform;
+import com.Theus452.walkietalkie.util.ConnectionManager;
+import com.mojang.brigadier.CommandDispatcher;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
@@ -14,9 +15,16 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.ServerChatEvent;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.item.ItemTossEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ForgeEvents {
+
+    private static final Logger SERVER_LOGGER = LoggerFactory.getLogger("net.minecraft.server.MinecraftServer");
 
     @SubscribeEvent
     public void onCommandsRegister(RegisterCommandsEvent event) {
@@ -35,6 +43,8 @@ public class ForgeEvents {
             return;
         }
 
+        SERVER_LOGGER.info("<{}> {}", sender.getDisplayName().getString(), event.getRawText());
+
         if (mainHand.getItem() instanceof WalkieTalkieItem) {
             String frequency = WalkieTalkieItem.getFrequency(mainHand);
             if (frequency.isEmpty()) {
@@ -45,6 +55,7 @@ public class ForgeEvents {
             int senderWalkieTalkieCount = countWalkieTalkies(sender);
             sender.sendSystemMessage(createWalkieTalkieMessage(sender, event.getRawText(), frequency, senderWalkieTalkieCount > 1));
 
+            int receivers = 0;
             for (ServerPlayer receiver : server.getPlayerList().getPlayers()) {
                 if (receiver == sender) continue;
                 for (ItemStack inventoryStack : receiver.getInventory().items) {
@@ -52,9 +63,14 @@ public class ForgeEvents {
                         int walkieTalkieCount = countWalkieTalkies(receiver);
                         Component messageToSend = createWalkieTalkieMessage(sender, event.getRawText(), frequency, walkieTalkieCount > 1);
                         receiver.sendSystemMessage(messageToSend);
+                        receivers++;
                         break;
                     }
                 }
+            }
+
+            if (receivers == 0) {
+                sender.sendSystemMessage(Component.translatable("message.walkietalkie.no_one_on_frequency").withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC));
             }
         } else {
             Component formattedMessage = Component.translatable("chat.type.text", sender.getDisplayName(), Component.literal(event.getRawText()));
@@ -72,6 +88,28 @@ public class ForgeEvents {
                 sender.sendSystemMessage(Component.translatable("message.walkietalkie.no_one_nearby")
                         .withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC));
             }
+        }
+    }
+
+    @SubscribeEvent
+    public void onItemPickup(PlayerEvent.ItemPickupEvent event) {
+    }
+
+    @SubscribeEvent
+    public void onItemToss(ItemTossEvent event) {
+        if (event.getPlayer() instanceof ServerPlayer && event.getEntity().getItem().getItem() instanceof WalkieTalkieItem) {
+            ServerPlayer player = (ServerPlayer) event.getPlayer();
+            String frequency = WalkieTalkieItem.getFrequency(event.getEntity().getItem());
+            if (!frequency.isEmpty()) {
+                ConnectionManager.playerDroppedWalkieTalkie(player, frequency);
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public void onServerTick(TickEvent.ServerTickEvent event) {
+        if (event.phase == TickEvent.Phase.END) {
+            ConnectionManager.tick(event.getServer());
         }
     }
 

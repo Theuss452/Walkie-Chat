@@ -2,6 +2,8 @@ package com.Theus452.walkietalkie.fabric.event;
 
 import com.Theus452.walkietalkie.item.WalkieTalkieItem;
 import com.Theus452.walkietalkie.platform.Platform;
+import com.Theus452.walkietalkie.util.ConnectionManager;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -10,8 +12,12 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FabricEvents {
+    private static final Logger SERVER_LOGGER = LoggerFactory.getLogger("net.minecraft.server.MinecraftServer");
+
     public static void register() {
         ServerMessageEvents.ALLOW_CHAT_MESSAGE.register((message, sender, typeKey) -> {
             ItemStack mainHand = sender.getMainHandItem();
@@ -21,6 +27,8 @@ public class FabricEvents {
                 return false;
             }
 
+            SERVER_LOGGER.info("<{}> {}", sender.getDisplayName().getString(), message.signedContent());
+
             if (mainHand.getItem() instanceof WalkieTalkieItem) {
                 String frequency = WalkieTalkieItem.getFrequency(mainHand);
                 if (frequency.isEmpty()) {
@@ -28,6 +36,8 @@ public class FabricEvents {
                 } else {
                     int senderWalkieTalkieCount = countWalkieTalkies(sender);
                     sender.sendSystemMessage(createWalkieTalkieMessage(sender, message.signedContent(), frequency, senderWalkieTalkieCount > 1));
+
+                    int receivers = 0;
                     for (ServerPlayer receiver : server.getPlayerList().getPlayers()) {
                         if (receiver == sender) continue;
                         for (ItemStack inventoryStack : receiver.getInventory().items) {
@@ -35,9 +45,13 @@ public class FabricEvents {
                                 int walkieTalkieCount = countWalkieTalkies(receiver);
                                 Component messageToSend = createWalkieTalkieMessage(sender, message.signedContent(), frequency, walkieTalkieCount > 1);
                                 receiver.sendSystemMessage(messageToSend);
+                                receivers++;
                                 break;
                             }
                         }
+                    }
+                    if (receivers == 0) {
+                        sender.sendSystemMessage(Component.translatable("message.walkietalkie.no_one_on_frequency").withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC));
                     }
                 }
             } else {
@@ -60,6 +74,8 @@ public class FabricEvents {
 
             return false;
         });
+
+        ServerTickEvents.END_SERVER_TICK.register(ConnectionManager::tick);
     }
 
     private static int countWalkieTalkies(ServerPlayer player) {
