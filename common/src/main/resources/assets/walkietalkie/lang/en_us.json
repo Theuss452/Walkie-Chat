@@ -15,5 +15,8 @@
   "message.walkietalkie.join.self": "You joined channel %s.",
   "message.walkietalkie.join.other": "%s joined the channel.",
   "message.walkietalkie.leave.other": "%s left the channel.",
-  "gui.walkietalkie.frequency.suggestion": "Enter a value (1-1000)"
+  "gui.walkietalkie.frequency.suggestion": "Enter a value (1-1000)",
+  "message.walkietalkie.no_one_on_frequency": "There is no one on this frequency to see your message!",
+  "message.walkietalkie.lost_connection": "%s lost the walkie-talkie and left the frequency"
+
 }

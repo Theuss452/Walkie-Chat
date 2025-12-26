@@ -7,7 +7,9 @@
     "ItemRendererMixin"
   ],
   "mixins": [
-    "ServerGamePacketListenerImplMixin"
+    "ServerGamePacketListenerImplMixin",
+    "PlayerInventoryMixin",
+    "ServerPlayerMixin"
   ],
   "injectors": {
     "defaultRequire": 1
