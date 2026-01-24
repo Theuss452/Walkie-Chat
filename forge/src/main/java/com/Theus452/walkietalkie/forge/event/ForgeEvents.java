@@ -35,7 +35,11 @@ public class ForgeEvents {
     @SubscribeEvent
     public void onServerChat(ServerChatEvent event) {
         ServerPlayer sender = event.getPlayer();
-        ItemStack mainHand = sender.getMainHandItem();
+        ItemStack walkieStack = sender.getMainHandItem();
+        if (!(walkieStack.getItem() instanceof WalkieTalkieItem)) {
+            walkieStack = sender.getOffhandItem();
+        }
+
         event.setCanceled(true);
 
         MinecraftServer server = sender.getServer();
@@ -45,8 +49,8 @@ public class ForgeEvents {
 
         SERVER_LOGGER.info("<{}> {}", sender.getDisplayName().getString(), event.getRawText());
 
-        if (mainHand.getItem() instanceof WalkieTalkieItem) {
-            String frequency = WalkieTalkieItem.getFrequency(mainHand);
+        if (walkieStack.getItem() instanceof WalkieTalkieItem) {
+            String frequency = WalkieTalkieItem.getFrequency(walkieStack);
             if (frequency.isEmpty()) {
                 sender.sendSystemMessage(Component.translatable("message.walkietalkie.define.frequency"));
                 return;
@@ -58,14 +62,28 @@ public class ForgeEvents {
             int receivers = 0;
             for (ServerPlayer receiver : server.getPlayerList().getPlayers()) {
                 if (receiver == sender) continue;
+                boolean hasReceiverWalkie = false;
+
                 for (ItemStack inventoryStack : receiver.getInventory().items) {
                     if (inventoryStack.getItem() instanceof WalkieTalkieItem && frequency.equals(WalkieTalkieItem.getFrequency(inventoryStack))) {
-                        int walkieTalkieCount = countWalkieTalkies(receiver);
-                        Component messageToSend = createWalkieTalkieMessage(sender, event.getRawText(), frequency, walkieTalkieCount > 1);
-                        receiver.sendSystemMessage(messageToSend);
-                        receivers++;
+                        hasReceiverWalkie = true;
                         break;
                     }
+                }
+                if (!hasReceiverWalkie) {
+                    for (ItemStack inventoryStack : receiver.getInventory().offhand) {
+                        if (inventoryStack.getItem() instanceof WalkieTalkieItem && frequency.equals(WalkieTalkieItem.getFrequency(inventoryStack))) {
+                            hasReceiverWalkie = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (hasReceiverWalkie) {
+                    int walkieTalkieCount = countWalkieTalkies(receiver);
+                    Component messageToSend = createWalkieTalkieMessage(sender, event.getRawText(), frequency, walkieTalkieCount > 1);
+                    receiver.sendSystemMessage(messageToSend);
+                    receivers++;
                 }
             }
 
@@ -116,6 +134,11 @@ public class ForgeEvents {
     private static int countWalkieTalkies(ServerPlayer player) {
         int count = 0;
         for (ItemStack stack : player.getInventory().items) {
+            if (stack.getItem() instanceof WalkieTalkieItem) {
+                count++;
+            }
+        }
+        for (ItemStack stack : player.getInventory().offhand) {
             if (stack.getItem() instanceof WalkieTalkieItem) {
                 count++;
             }

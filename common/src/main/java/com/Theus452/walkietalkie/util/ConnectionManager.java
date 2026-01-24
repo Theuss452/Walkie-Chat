@@ -89,6 +89,15 @@ public class ConnectionManager {
                 }
             }
 
+            for (ItemStack stack : player.getInventory().offhand) {
+                if (stack.getItem() instanceof WalkieTalkieItem) {
+                    String freq = WalkieTalkieItem.getFrequency(stack);
+                    if (!freq.isEmpty()) {
+                        currentFrequencies.add(freq);
+                    }
+                }
+            }
+
             Set<String> lastFrequencies = activeFrequencies.getOrDefault(playerUUID, new HashSet<>());
 
             for (String freq : lastFrequencies) {
@@ -152,11 +161,21 @@ public class ConnectionManager {
                 count++;
             }
         }
+        for (ItemStack stack : player.getInventory().offhand) {
+            if (stack.getItem() instanceof WalkieTalkieItem && frequency.equals(WalkieTalkieItem.getFrequency(stack))) {
+                count++;
+            }
+        }
         return count;
     }
 
     private static boolean hasWalkieTalkieWithFrequency(ServerPlayer player, String frequency) {
         for (ItemStack stack : player.getInventory().items) {
+            if (stack.getItem() instanceof WalkieTalkieItem && frequency.equals(WalkieTalkieItem.getFrequency(stack))) {
+                return true;
+            }
+        }
+        for (ItemStack stack : player.getInventory().offhand) {
             if (stack.getItem() instanceof WalkieTalkieItem && frequency.equals(WalkieTalkieItem.getFrequency(stack))) {
                 return true;
             }
@@ -167,6 +186,11 @@ public class ConnectionManager {
     private static int countTotalWalkieTalkies(ServerPlayer player) {
         int count = 0;
         for (ItemStack stack : player.getInventory().items) {
+            if (stack.getItem() instanceof WalkieTalkieItem) {
+                count++;
+            }
+        }
+        for (ItemStack stack : player.getInventory().offhand) {
             if (stack.getItem() instanceof WalkieTalkieItem) {
                 count++;
             }
