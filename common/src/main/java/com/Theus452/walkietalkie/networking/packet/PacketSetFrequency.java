@@ -96,11 +96,25 @@ public class PacketSetFrequency {
                 }
             }
         }
+        for (ItemStack inventoryStack : player.getInventory().offhand) {
+            if (inventoryStack != excludedStack && inventoryStack.getItem() instanceof WalkieTalkieItem) {
+                if (frequency.equals(WalkieTalkieItem.getFrequency(inventoryStack))) {
+                    return true;
+                }
+            }
+        }
         return false;
     }
 
     private static boolean hasWalkieTalkieInInventory(ServerPlayer player, String frequency) {
         for (ItemStack inventoryStack : player.getInventory().items) {
+            if (inventoryStack.getItem() instanceof WalkieTalkieItem) {
+                if (frequency.equals(WalkieTalkieItem.getFrequency(inventoryStack))) {
+                    return true;
+                }
+            }
+        }
+        for (ItemStack inventoryStack : player.getInventory().offhand) {
             if (inventoryStack.getItem() instanceof WalkieTalkieItem) {
                 if (frequency.equals(WalkieTalkieItem.getFrequency(inventoryStack))) {
                     return true;
@@ -113,6 +127,11 @@ public class PacketSetFrequency {
     private static int countTotalWalkieTalkies(ServerPlayer player) {
         int count = 0;
         for (ItemStack stack : player.getInventory().items) {
+            if (stack.getItem() instanceof WalkieTalkieItem) {
+                count++;
+            }
+        }
+        for (ItemStack stack : player.getInventory().offhand) {
             if (stack.getItem() instanceof WalkieTalkieItem) {
                 count++;
             }

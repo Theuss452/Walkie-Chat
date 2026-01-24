@@ -21,7 +21,6 @@ public class ConnectionManager {
         }
     }
 
-
     public static void ignoreFrequencyChange(ServerPlayer player, String frequency) {
         UUID playerUUID = player.getUUID();
 
@@ -122,7 +121,17 @@ public class ConnectionManager {
 
     private static Set<String> getPlayerFrequencies(ServerPlayer player) {
         Set<String> freqs = new HashSet<>();
+
         for (ItemStack stack : player.getInventory().items) {
+            if (stack.getItem() instanceof WalkieTalkieItem) {
+                String f = WalkieTalkieItem.getFrequency(stack);
+                if (!f.isEmpty()) {
+                    freqs.add(f);
+                }
+            }
+        }
+
+        for (ItemStack stack : player.getInventory().offhand) {
             if (stack.getItem() instanceof WalkieTalkieItem) {
                 String f = WalkieTalkieItem.getFrequency(stack);
                 if (!f.isEmpty()) {
@@ -140,11 +149,21 @@ public class ConnectionManager {
                 count++;
             }
         }
+        for (ItemStack stack : player.getInventory().offhand) {
+            if (stack.getItem() instanceof WalkieTalkieItem && frequency.equals(WalkieTalkieItem.getFrequency(stack))) {
+                count++;
+            }
+        }
         return count;
     }
 
     private static boolean hasWalkieTalkieWithFrequency(ServerPlayer player, String frequency) {
         for (ItemStack stack : player.getInventory().items) {
+            if (stack.getItem() instanceof WalkieTalkieItem && frequency.equals(WalkieTalkieItem.getFrequency(stack))) {
+                return true;
+            }
+        }
+        for (ItemStack stack : player.getInventory().offhand) {
             if (stack.getItem() instanceof WalkieTalkieItem && frequency.equals(WalkieTalkieItem.getFrequency(stack))) {
                 return true;
             }
@@ -155,6 +174,11 @@ public class ConnectionManager {
     private static int countTotalWalkieTalkies(ServerPlayer player) {
         int count = 0;
         for (ItemStack stack : player.getInventory().items) {
+            if (stack.getItem() instanceof WalkieTalkieItem) {
+                count++;
+            }
+        }
+        for (ItemStack stack : player.getInventory().offhand) {
             if (stack.getItem() instanceof WalkieTalkieItem) {
                 count++;
             }
