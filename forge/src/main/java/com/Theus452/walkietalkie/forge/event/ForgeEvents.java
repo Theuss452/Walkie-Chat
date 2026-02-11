@@ -3,6 +3,7 @@ package com.Theus452.walkietalkie.forge.event;
 import com.Theus452.walkietalkie.forge.commands.ForgeCommands;
 import com.Theus452.walkietalkie.item.WalkieTalkieItem;
 import com.Theus452.walkietalkie.platform.Platform;
+import com.Theus452.walkietalkie.sound.ModSounds;
 import com.Theus452.walkietalkie.util.ConnectionManager;
 import com.mojang.brigadier.CommandDispatcher;
 import net.minecraft.ChatFormatting;
@@ -12,6 +13,7 @@ import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.ServerChatEvent;
@@ -58,6 +60,7 @@ public class ForgeEvents {
 
             int senderWalkieTalkieCount = countWalkieTalkies(sender);
             sender.sendSystemMessage(createWalkieTalkieMessage(sender, event.getRawText(), frequency, senderWalkieTalkieCount > 1));
+            sender.playNotifySound(ModSounds.WALKIE_TALKIE_SEND_MSG.get(), SoundSource.PLAYERS, 1.0F, 1.0F);
 
             int receivers = 0;
             for (ServerPlayer receiver : server.getPlayerList().getPlayers()) {
@@ -83,6 +86,7 @@ public class ForgeEvents {
                     int walkieTalkieCount = countWalkieTalkies(receiver);
                     Component messageToSend = createWalkieTalkieMessage(sender, event.getRawText(), frequency, walkieTalkieCount > 1);
                     receiver.sendSystemMessage(messageToSend);
+                    receiver.playNotifySound(ModSounds.WALKIE_TALKIE_MSG_RECEIVER.get(), SoundSource.PLAYERS, 1.0F, 1.0F);
                     receivers++;
                 }
             }

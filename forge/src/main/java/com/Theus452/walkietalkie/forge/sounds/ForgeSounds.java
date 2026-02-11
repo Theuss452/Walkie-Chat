@@ -14,6 +14,12 @@ public class ForgeSounds {
 
     public static final RegistryObject<SoundEvent> WALKIE_TALKIE_OPEN_MENU_REG_OBJ = SOUND_EVENTS.register("walkie_talkie_open_menu",
             () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(WalkieTalkieMod.MOD_ID, "walkie_talkie_open_menu")));
+    public static final RegistryObject<SoundEvent> WALKIE_TALKIE_CHANGE_CHANNEL_REG_OBJ = SOUND_EVENTS.register("change_channel",
+            () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(WalkieTalkieMod.MOD_ID, "change_channel")));
+    public static final RegistryObject<SoundEvent> WALKIE_TALKIE_SEND_MSG_REG_OBJ = SOUND_EVENTS.register("send_msg",
+            () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(WalkieTalkieMod.MOD_ID, "send_msg")));
+    public static final RegistryObject<SoundEvent> WALKIE_TALKIE_MSG_RECEIVER_REG_OBJ = SOUND_EVENTS.register("msg_receiver",
+            () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(WalkieTalkieMod.MOD_ID, "msg_receiver")));
 
     public static void register(IEventBus eventBus) {
         SOUND_EVENTS.register(eventBus);

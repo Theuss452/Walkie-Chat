@@ -15,5 +15,21 @@ public class FabricSounds {
         Registry.register(BuiltInRegistries.SOUND_EVENT, id, soundEvent);
 
         ModSounds.WALKIE_TALKIE_OPEN_MENU = () -> soundEvent;
+
+        ResourceLocation changeChannelId = new ResourceLocation(WalkieTalkieMod.MOD_ID, "change_channel");
+        SoundEvent changeChannelEvent = SoundEvent.createVariableRangeEvent(changeChannelId);
+        Registry.register(BuiltInRegistries.SOUND_EVENT, changeChannelId, changeChannelEvent);
+
+        ResourceLocation sendMsgId = new ResourceLocation(WalkieTalkieMod.MOD_ID, "send_msg");
+        SoundEvent sendMsgEvent = SoundEvent.createVariableRangeEvent(sendMsgId);
+        Registry.register(BuiltInRegistries.SOUND_EVENT, sendMsgId, sendMsgEvent);
+
+        ResourceLocation msgReceiverId = new ResourceLocation(WalkieTalkieMod.MOD_ID, "msg_receiver");
+        SoundEvent msgReceiverEvent = SoundEvent.createVariableRangeEvent(msgReceiverId);
+        Registry.register(BuiltInRegistries.SOUND_EVENT, msgReceiverId, msgReceiverEvent);
+
+        ModSounds.WALKIE_TALKIE_CHANGE_CHANNEL = () -> changeChannelEvent;
+        ModSounds.WALKIE_TALKIE_SEND_MSG = () -> sendMsgEvent;
+        ModSounds.WALKIE_TALKIE_MSG_RECEIVER = () -> msgReceiverEvent;
     }
 }

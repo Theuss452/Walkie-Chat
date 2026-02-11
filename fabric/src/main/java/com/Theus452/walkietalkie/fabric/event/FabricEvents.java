@@ -2,6 +2,7 @@ package com.Theus452.walkietalkie.fabric.event;
 
 import com.Theus452.walkietalkie.item.WalkieTalkieItem;
 import com.Theus452.walkietalkie.platform.Platform;
+import com.Theus452.walkietalkie.sound.ModSounds;
 import com.Theus452.walkietalkie.util.ConnectionManager;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
@@ -11,6 +12,7 @@ import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.item.ItemStack;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +41,7 @@ public class FabricEvents {
                 } else {
                     int senderWalkieTalkieCount = countWalkieTalkies(sender);
                     sender.sendSystemMessage(createWalkieTalkieMessage(sender, message.signedContent(), frequency, senderWalkieTalkieCount > 1));
+                    sender.playNotifySound(ModSounds.WALKIE_TALKIE_SEND_MSG.get(), SoundSource.PLAYERS, 1.0F, 1.0F);
 
                     int receivers = 0;
                     for (ServerPlayer receiver : server.getPlayerList().getPlayers()) {
@@ -64,6 +67,7 @@ public class FabricEvents {
                             int walkieTalkieCount = countWalkieTalkies(receiver);
                             Component messageToSend = createWalkieTalkieMessage(sender, message.signedContent(), frequency, walkieTalkieCount > 1);
                             receiver.sendSystemMessage(messageToSend);
+                            receiver.playNotifySound(ModSounds.WALKIE_TALKIE_MSG_RECEIVER.get(), SoundSource.PLAYERS, 1.0F, 1.0F);
                             receivers++;
                         }
                     }

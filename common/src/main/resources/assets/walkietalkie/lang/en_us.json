@@ -2,6 +2,9 @@
   "item.walkietalkie.walkie_talkie": "Walkie-Talkie",
 
   "sounds.walkietalkie.walkie_talkie_open_menu": "Walkie Talkie Menu",
+  "sounds.walkietalkie.change_channel": "Walkie Talkie Channel Change",
+  "sounds.walkietalkie.send_msg": "Walkie Talkie Message Sent",
+  "sounds.walkietalkie.msg_receiver": "Walkie Talkie Message Received",
 
   "creativetab.walkietalkie_tab": "Walkie Talkie Mod",
 
