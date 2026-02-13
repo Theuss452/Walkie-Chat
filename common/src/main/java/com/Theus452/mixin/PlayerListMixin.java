@@ -31,7 +31,8 @@ public abstract class PlayerListMixin {
     @Inject(
             method = "broadcastChatMessage(Lnet/minecraft/network/chat/PlayerChatMessage;Lnet/minecraft/commands/CommandSourceStack;Lnet/minecraft/network/chat/ChatType$Bound;)V",
             at = @At("HEAD"),
-            cancellable = true
+            cancellable = true,
+            require = 0
     )
     private void walkietalkie$applyProximityToCommandChat(PlayerChatMessage message, CommandSourceStack sender, ChatType.Bound boundChatType, CallbackInfo ci) {
         ServerPlayer senderPlayer = sender.getPlayer();
