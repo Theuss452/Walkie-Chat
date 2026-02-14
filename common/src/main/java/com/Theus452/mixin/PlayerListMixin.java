@@ -29,12 +29,28 @@ public abstract class PlayerListMixin {
     @Shadow @Final private List<ServerPlayer> players;
 
     @Inject(
-            method = "broadcastChatMessage(Lnet/minecraft/network/chat/PlayerChatMessage;Lnet/minecraft/commands/CommandSourceStack;Lnet/minecraft/network/chat/ChatType$Bound;)V",
+            method = "broadcastChatMessage",
             at = @At("HEAD"),
             cancellable = true,
-            require = 0
+            require = 0,
+            remap = false
     )
-    private void walkietalkie$applyProximityToCommandChat(PlayerChatMessage message, CommandSourceStack sender, ChatType.Bound boundChatType, CallbackInfo ci) {
+    private void walkietalkie$applyProximityToCommandChatNamed(PlayerChatMessage message, CommandSourceStack sender, ChatType.Bound boundChatType, CallbackInfo ci) {
+        walkietalkie$applyProximityToCommandChatImpl(message, sender, boundChatType, ci);
+    }
+
+    @Inject(
+            method = "m_243063_",
+            at = @At("HEAD"),
+            cancellable = true,
+            require = 0,
+            remap = false
+    )
+    private void walkietalkie$applyProximityToCommandChatSrg(PlayerChatMessage message, CommandSourceStack sender, ChatType.Bound boundChatType, CallbackInfo ci) {
+        walkietalkie$applyProximityToCommandChatImpl(message, sender, boundChatType, ci);
+    }
+
+    private void walkietalkie$applyProximityToCommandChatImpl(PlayerChatMessage message, CommandSourceStack sender, ChatType.Bound boundChatType, CallbackInfo ci) {
         ServerPlayer senderPlayer = sender.getPlayer();
         if (senderPlayer == null) {
             return;
@@ -78,9 +94,9 @@ public abstract class PlayerListMixin {
 
     private static boolean isProximityCommandChatType(CommandSourceStack sender, ChatType.Bound boundChatType) {
         Registry<ChatType> chatTypes = sender.registryAccess().registryOrThrow(Registries.CHAT_TYPE);
-        ChatType sayType = chatTypes.getOrThrow(ChatType.SAY_COMMAND);
-        ChatType emoteType = chatTypes.getOrThrow(ChatType.EMOTE_COMMAND);
-        ChatType boundType = boundChatType.chatType();
-        return boundType == sayType || boundType == emoteType;
+        String boundTypeKey = boundChatType.chatType().chat().translationKey();
+        String sayTypeKey = chatTypes.getOrThrow(ChatType.SAY_COMMAND).chat().translationKey();
+        String emoteTypeKey = chatTypes.getOrThrow(ChatType.EMOTE_COMMAND).chat().translationKey();
+        return boundTypeKey.equals(sayTypeKey) || boundTypeKey.equals(emoteTypeKey);
     }
 }

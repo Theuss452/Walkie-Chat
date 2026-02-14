@@ -1,6 +1,7 @@
 package com.Theus452.mixin;
 
 import com.Theus452.walkietalkie.platform.Platform;
+import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.ChatType;
@@ -22,8 +23,62 @@ import java.util.List;
 @Mixin(MsgCommand.class)
 public abstract class MsgCommandMixin {
 
-    @Inject(method = "sendMessage", at = @At("HEAD"), cancellable = true)
-    private static void walkietalkie$applyProximityToTell(CommandSourceStack source, Collection<ServerPlayer> targets, PlayerChatMessage message, CallbackInfo ci) {
+    @Inject(
+            method = "sendMessage",
+            at = @At("HEAD"),
+            cancellable = true,
+            remap = false,
+            require = 0
+    )
+    private static void walkietalkie$applyProximityToTellNamed(CommandSourceStack source, Collection<ServerPlayer> targets, PlayerChatMessage message, CallbackInfo ci) {
+        walkietalkie$applyProximityToTellImpl(source, targets, message, ci);
+    }
+
+    @Inject(
+            method = "m_246972_",
+            at = @At("HEAD"),
+            cancellable = true,
+            remap = false,
+            require = 0
+    )
+    private static void walkietalkie$applyProximityToTellSrg(CommandSourceStack source, Collection<ServerPlayer> targets, PlayerChatMessage message, CallbackInfo ci) {
+        walkietalkie$applyProximityToTellImpl(source, targets, message, ci);
+    }
+
+    @Inject(
+            method = "method_13462",
+            at = @At("HEAD"),
+            cancellable = true,
+            remap = false,
+            require = 0
+    )
+    private static void walkietalkie$applyProximityToTellIntermediary(CommandSourceStack source, Collection<ServerPlayer> targets, PlayerChatMessage message, CallbackInfo ci) {
+        walkietalkie$applyProximityToTellImpl(source, targets, message, ci);
+    }
+
+    @Inject(
+            method = "m_244847_",
+            at = @At("HEAD"),
+            cancellable = true,
+            remap = false,
+            require = 0
+    )
+    private static void walkietalkie$applyProximityToTellSrgLambda(CommandContext<CommandSourceStack> context, Collection<ServerPlayer> targets, PlayerChatMessage message, CallbackInfo ci) {
+        walkietalkie$applyProximityToTellImpl(context.getSource(), targets, message, ci);
+    }
+
+    @Inject(
+            method = "method_45153",
+            at = @At("HEAD"),
+            cancellable = true,
+            remap = false,
+            require = 0
+    )
+    private static void walkietalkie$applyProximityToTellIntermediaryLambda(CommandContext<CommandSourceStack> context, Collection<ServerPlayer> targets, PlayerChatMessage message, CallbackInfo ci) {
+        walkietalkie$applyProximityToTellImpl(context.getSource(), targets, message, ci);
+    }
+
+    private static void walkietalkie$applyProximityToTellImpl(CommandSourceStack source, Collection<ServerPlayer> targets, PlayerChatMessage message, CallbackInfo ci) {
         ServerPlayer sender = source.getPlayer();
         if (sender == null) {
             return;

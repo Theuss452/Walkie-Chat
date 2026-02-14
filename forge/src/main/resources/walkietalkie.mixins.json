@@ -1,8 +1,8 @@
 {
   "required": true,
   "package": "com.Theus452.mixin",
-  "refmap": "Walkie-Chat-common-common-refmap.json",
   "compatibilityLevel": "JAVA_17",
+  "minVersion": "0.8",
   "client": [],
   "mixins": [
     "MsgCommandMixin",
