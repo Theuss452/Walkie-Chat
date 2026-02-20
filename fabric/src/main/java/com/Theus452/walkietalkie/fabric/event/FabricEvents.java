@@ -4,6 +4,7 @@ import com.Theus452.walkietalkie.item.WalkieTalkieItem;
 import com.Theus452.walkietalkie.platform.Platform;
 import com.Theus452.walkietalkie.sound.ModSounds;
 import com.Theus452.walkietalkie.util.ConnectionManager;
+import com.Theus452.walkietalkie.util.IncomingMessageSoundLimiter;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
 import net.minecraft.ChatFormatting;
@@ -67,7 +68,10 @@ public class FabricEvents {
                             int walkieTalkieCount = countWalkieTalkies(receiver);
                             Component messageToSend = createWalkieTalkieMessage(sender, message.signedContent(), frequency, walkieTalkieCount > 1);
                             receiver.sendSystemMessage(messageToSend);
-                            receiver.playNotifySound(ModSounds.WALKIE_TALKIE_MSG_RECEIVER.get(), SoundSource.PLAYERS, 1.0F, 1.0F);
+                            IncomingMessageSoundLimiter.SoundDecision soundDecision = IncomingMessageSoundLimiter.evaluate(receiver);
+                            if (soundDecision.shouldPlay()) {
+                                receiver.playNotifySound(ModSounds.WALKIE_TALKIE_MSG_RECEIVER.get(), SoundSource.PLAYERS, soundDecision.volume(), soundDecision.pitch());
+                            }
                             receivers++;
                         }
                     }

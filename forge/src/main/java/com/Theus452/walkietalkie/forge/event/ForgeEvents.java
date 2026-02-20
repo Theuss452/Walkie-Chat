@@ -5,6 +5,7 @@ import com.Theus452.walkietalkie.item.WalkieTalkieItem;
 import com.Theus452.walkietalkie.platform.Platform;
 import com.Theus452.walkietalkie.sound.ModSounds;
 import com.Theus452.walkietalkie.util.ConnectionManager;
+import com.Theus452.walkietalkie.util.IncomingMessageSoundLimiter;
 import com.mojang.brigadier.CommandDispatcher;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
@@ -86,7 +87,10 @@ public class ForgeEvents {
                     int walkieTalkieCount = countWalkieTalkies(receiver);
                     Component messageToSend = createWalkieTalkieMessage(sender, event.getRawText(), frequency, walkieTalkieCount > 1);
                     receiver.sendSystemMessage(messageToSend);
-                    receiver.playNotifySound(ModSounds.WALKIE_TALKIE_MSG_RECEIVER.get(), SoundSource.PLAYERS, 1.0F, 1.0F);
+                    IncomingMessageSoundLimiter.SoundDecision soundDecision = IncomingMessageSoundLimiter.evaluate(receiver);
+                    if (soundDecision.shouldPlay()) {
+                        receiver.playNotifySound(ModSounds.WALKIE_TALKIE_MSG_RECEIVER.get(), SoundSource.PLAYERS, soundDecision.volume(), soundDecision.pitch());
+                    }
                     receivers++;
                 }
             }
