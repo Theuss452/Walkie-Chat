@@ -50,6 +50,17 @@ public abstract class PlayerListMixin {
         walkietalkie$applyProximityToCommandChatImpl(message, sender, boundChatType, ci);
     }
 
+    @Inject(
+            method = "method_44166",
+            at = @At("HEAD"),
+            cancellable = true,
+            require = 0,
+            remap = false
+    )
+    private void walkietalkie$applyProximityToCommandChatIntermediary(PlayerChatMessage message, CommandSourceStack sender, ChatType.Bound boundChatType, CallbackInfo ci) {
+        walkietalkie$applyProximityToCommandChatImpl(message, sender, boundChatType, ci);
+    }
+
     private void walkietalkie$applyProximityToCommandChatImpl(PlayerChatMessage message, CommandSourceStack sender, ChatType.Bound boundChatType, CallbackInfo ci) {
         ServerPlayer senderPlayer = sender.getPlayer();
         if (senderPlayer == null) {
