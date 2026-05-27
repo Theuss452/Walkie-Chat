@@ -1,0 +1,34 @@
+package com.Theus452.walkietalkie.fabric.sounds;
+
+import com.Theus452.walkietalkie.WalkieTalkieMod;
+import com.Theus452.walkietalkie.sound.ModSounds;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvent;
+
+public class FabricSounds {
+    public static void register() {
+        ResourceLocation id = ResourceLocation.fromNamespaceAndPath(WalkieTalkieMod.MOD_ID, "walkie_talkie_open_menu");
+        SoundEvent soundEvent = SoundEvent.createVariableRangeEvent(id);
+        Registry.register(BuiltInRegistries.SOUND_EVENT, id, soundEvent);
+
+        ModSounds.WALKIE_TALKIE_OPEN_MENU = () -> soundEvent;
+
+        ResourceLocation changeChannelId = ResourceLocation.fromNamespaceAndPath(WalkieTalkieMod.MOD_ID, "change_channel");
+        SoundEvent changeChannelEvent = SoundEvent.createVariableRangeEvent(changeChannelId);
+        Registry.register(BuiltInRegistries.SOUND_EVENT, changeChannelId, changeChannelEvent);
+
+        ResourceLocation sendMsgId = ResourceLocation.fromNamespaceAndPath(WalkieTalkieMod.MOD_ID, "send_msg");
+        SoundEvent sendMsgEvent = SoundEvent.createVariableRangeEvent(sendMsgId);
+        Registry.register(BuiltInRegistries.SOUND_EVENT, sendMsgId, sendMsgEvent);
+
+        ResourceLocation msgReceiverId = ResourceLocation.fromNamespaceAndPath(WalkieTalkieMod.MOD_ID, "msg_receiver");
+        SoundEvent msgReceiverEvent = SoundEvent.createVariableRangeEvent(msgReceiverId);
+        Registry.register(BuiltInRegistries.SOUND_EVENT, msgReceiverId, msgReceiverEvent);
+
+        ModSounds.WALKIE_TALKIE_CHANGE_CHANNEL = () -> changeChannelEvent;
+        ModSounds.WALKIE_TALKIE_SEND_MSG = () -> sendMsgEvent;
+        ModSounds.WALKIE_TALKIE_MSG_RECEIVER = () -> msgReceiverEvent;
+    }
+}

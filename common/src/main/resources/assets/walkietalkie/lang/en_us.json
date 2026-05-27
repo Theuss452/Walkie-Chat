@@ -1,0 +1,25 @@
+{
+  "item.walkietalkie.walkie_talkie": "Walkie-Talkie",
+
+  "sounds.walkietalkie.walkie_talkie_open_menu": "Walkie Talkie Menu",
+  "sounds.walkietalkie.change_channel": "Walkie Talkie Channel Change",
+  "sounds.walkietalkie.send_msg": "Walkie Talkie Message Sent",
+  "sounds.walkietalkie.msg_receiver": "Walkie Talkie Message Received",
+
+  "creativetab.walkietalkie_tab": "Walkie Talkie Mod",
+
+  "message.walkietalkie.no_one_nearby": "§7There is no one nearby to hear you. Use a Walkie-Talkie!",
+  "message.walkietalkie.define.frequency": "§7No defined frequency!",
+  "message.walkietalkie.frequency": "Frequency",
+  "message.walkietalkie.save.frequency": "Save",
+  "message.walkietalkie.title.screen": "Walkie-Talkie Frequency",
+  "command.walkietalkie.setrange": "Proximity chat distance set to %s blocks.",
+  "message.walkietalkie.join.self": "You joined channel %s.",
+  "message.walkietalkie.join.other": "%s joined the channel.",
+  "message.walkietalkie.leave.other": "%s left the channel.",
+  "gui.walkietalkie.frequency.suggestion": "Enter a value (1-1000)",
+  "tooltip.walkietalkie.frequency.chat": "§7Frequency: §e%s",
+  "message.walkietalkie.no_one_on_frequency": "There is no one on this frequency to see your message!",
+  "message.walkietalkie.lost_connection": "%s lost the walkie-talkie and left the frequency"
+
+}

@@ -1,0 +1,26 @@
+{
+  "walkie_talkie_open_menu": {
+    "subtitles": "sounds.walkietalkie.walkie_talkie_open_menu",
+    "sounds": [
+      "walkietalkie:walkie_talkie_open_menu"
+    ]
+  },
+  "change_channel": {
+    "subtitles": "sounds.walkietalkie.change_channel",
+    "sounds": [
+      "walkietalkie:change_channel"
+    ]
+  },
+  "send_msg": {
+    "subtitles": "sounds.walkietalkie.send_msg",
+    "sounds": [
+      "walkietalkie:send_msg"
+    ]
+  },
+  "msg_receiver": {
+    "subtitles": "sounds.walkietalkie.msg_receiver",
+    "sounds": [
+      "walkietalkie:msg_receiver"
+    ]
+  }
+}

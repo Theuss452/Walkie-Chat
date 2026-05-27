@@ -1,0 +1,18 @@
+{
+  "required": true,
+  "package": "com.Theus452.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "minVersion": "0.8",
+  "client": [
+    "ItemRendererMixin"
+  ],
+  "mixins": [
+    "MsgCommandMixin",
+    "PlayerListMixin",
+    "PlayerInventoryMixin",
+    "ServerPlayerMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
