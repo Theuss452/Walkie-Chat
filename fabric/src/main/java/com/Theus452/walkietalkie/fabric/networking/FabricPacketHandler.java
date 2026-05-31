@@ -13,6 +13,8 @@ public class FabricPacketHandler {
     public static final ResourceLocation WALKIE_BLOCK_MESSAGE_ID = new ResourceLocation(WalkieTalkieMod.MOD_ID, "walkie_block_message");
     public static final ResourceLocation SET_BLOCK_FREQUENCY_ID = new ResourceLocation(WalkieTalkieMod.MOD_ID, "set_block_frequency");
     public static final ResourceLocation TOGGLE_BLOCK_RELAY_ID = new ResourceLocation(WalkieTalkieMod.MOD_ID, "toggle_block_relay");
+    public static final ResourceLocation PUSH_CHAT_MESSAGE_ID = new ResourceLocation(WalkieTalkieMod.MOD_ID, "push_chat_message");
+    public static final ResourceLocation SYNC_CHANNELS_ID = new ResourceLocation(WalkieTalkieMod.MOD_ID, "sync_channels");
 
     public static void registerC2SPackets() {
         ServerPlayNetworking.registerGlobalReceiver(SET_FREQUENCY_ID, (server, player, handler, buf, responseSender) -> {

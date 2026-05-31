@@ -9,4 +9,5 @@ public class ModSounds {
     public static Supplier<SoundEvent> WALKIE_TALKIE_CHANGE_CHANNEL;
     public static Supplier<SoundEvent> WALKIE_TALKIE_SEND_MSG;
     public static Supplier<SoundEvent> WALKIE_TALKIE_MSG_RECEIVER;
+    public static Supplier<SoundEvent> WALKIE_TALKIE_BUTTON_CLICK;
 }

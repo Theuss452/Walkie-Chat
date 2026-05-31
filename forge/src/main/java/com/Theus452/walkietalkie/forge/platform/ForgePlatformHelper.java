@@ -13,6 +13,11 @@ public class ForgePlatformHelper implements IPlatformHelper {
     }
 
     @Override
+    public void sendToClient(Object packet, net.minecraft.server.level.ServerPlayer player) {
+        ForgePacketHandler.INSTANCE.send(net.minecraftforge.network.PacketDistributor.PLAYER.with(() -> player), packet);
+    }
+
+    @Override
     public double getChatRange() {
         return ForgeModConfigs.CHAT_RANGE.get();
     }

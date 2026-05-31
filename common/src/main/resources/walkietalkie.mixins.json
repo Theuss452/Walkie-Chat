@@ -8,10 +8,8 @@
     "ItemRendererMixin"
   ],
   "mixins": [
-    "MsgCommandMixin",
-    "PlayerListMixin",
     "PlayerInventoryMixin",
-    "ServerPlayerMixin"
+    "ServerGamePacketListenerImplMixin"
   ],
   "injectors": {
     "defaultRequire": 1

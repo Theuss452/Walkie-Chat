@@ -5,6 +5,8 @@ import com.Theus452.walkietalkie.networking.packet.C2S_ToggleBlockRelayPacket;
 import com.Theus452.walkietalkie.networking.packet.C2S_WalkieBlockMessagePacket;
 import com.Theus452.walkietalkie.networking.packet.PacketSetBlockFrequency;
 import com.Theus452.walkietalkie.networking.packet.PacketSetFrequency;
+import com.Theus452.walkietalkie.networking.packet.PacketPushChatMessage;
+import com.Theus452.walkietalkie.networking.packet.PacketSyncChannels;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.network.NetworkEvent;
@@ -28,6 +30,8 @@ public class ForgePacketHandler {
         INSTANCE.registerMessage(id++, C2S_WalkieBlockMessagePacket.class, C2S_WalkieBlockMessagePacket::toBytes, C2S_WalkieBlockMessagePacket::new, ForgePacketHandler::handleWalkieBlockMessage);
         INSTANCE.registerMessage(id++, PacketSetBlockFrequency.class, PacketSetBlockFrequency::toBytes, PacketSetBlockFrequency::new, ForgePacketHandler::handleSetBlockFrequency);
         INSTANCE.registerMessage(id++, C2S_ToggleBlockRelayPacket.class, C2S_ToggleBlockRelayPacket::toBytes, C2S_ToggleBlockRelayPacket::new, ForgePacketHandler::handleToggleBlockRelay);
+        INSTANCE.registerMessage(id++, PacketPushChatMessage.class, PacketPushChatMessage::toBytes, PacketPushChatMessage::new, ForgePacketHandler::handlePushChatMessage);
+        INSTANCE.registerMessage(id++, PacketSyncChannels.class, PacketSyncChannels::toBytes, PacketSyncChannels::new, ForgePacketHandler::handleSyncChannels);
     }
 
     private static void handleSetFrequency(PacketSetFrequency packet, Supplier<NetworkEvent.Context> contextSupplier) {
@@ -63,6 +67,18 @@ public class ForgePacketHandler {
             ServerPlayer player = context.getSender();
             C2S_ToggleBlockRelayPacket.handle(packet, player);
         });
+        context.setPacketHandled(true);
+    }
+
+    private static void handlePushChatMessage(PacketPushChatMessage packet, Supplier<NetworkEvent.Context> contextSupplier) {
+        NetworkEvent.Context context = contextSupplier.get();
+        context.enqueueWork(() -> PacketPushChatMessage.handle(packet));
+        context.setPacketHandled(true);
+    }
+
+    private static void handleSyncChannels(PacketSyncChannels packet, Supplier<NetworkEvent.Context> contextSupplier) {
+        NetworkEvent.Context context = contextSupplier.get();
+        context.enqueueWork(() -> PacketSyncChannels.handle(packet));
         context.setPacketHandled(true);
     }
 }

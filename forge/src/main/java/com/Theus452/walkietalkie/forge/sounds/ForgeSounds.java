@@ -20,6 +20,8 @@ public class ForgeSounds {
             () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(WalkieTalkieMod.MOD_ID, "send_msg")));
     public static final RegistryObject<SoundEvent> WALKIE_TALKIE_MSG_RECEIVER_REG_OBJ = SOUND_EVENTS.register("msg_receiver",
             () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(WalkieTalkieMod.MOD_ID, "msg_receiver")));
+    public static final RegistryObject<SoundEvent> WALKIE_TALKIE_BUTTON_CLICK_REG_OBJ = SOUND_EVENTS.register("walkie_button_click",
+            () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(WalkieTalkieMod.MOD_ID, "walkie_button_click")));
 
     public static void register(IEventBus eventBus) {
         SOUND_EVENTS.register(eventBus);

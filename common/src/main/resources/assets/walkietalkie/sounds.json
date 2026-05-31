@@ -22,5 +22,11 @@
     "sounds": [
       "walkietalkie:msg_receiver"
     ]
+  },
+  "walkie_button_click": {
+    "subtitles": "sounds.walkietalkie.walkie_button_click",
+    "sounds": [
+      "walkietalkie:walkie_button_click"
+    ]
   }
 }

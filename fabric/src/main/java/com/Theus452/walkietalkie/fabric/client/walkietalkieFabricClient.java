@@ -23,5 +23,15 @@ public final class walkietalkieFabricClient implements ClientModInitializer {
             }
             return null;
         });
+
+        net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.registerGlobalReceiver(com.Theus452.walkietalkie.fabric.networking.FabricPacketHandler.PUSH_CHAT_MESSAGE_ID, (client, handler, buf, responseSender) -> {
+            com.Theus452.walkietalkie.networking.packet.PacketPushChatMessage packet = new com.Theus452.walkietalkie.networking.packet.PacketPushChatMessage(buf);
+            client.execute(() -> com.Theus452.walkietalkie.networking.packet.PacketPushChatMessage.handle(packet));
+        });
+
+        net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.registerGlobalReceiver(com.Theus452.walkietalkie.fabric.networking.FabricPacketHandler.SYNC_CHANNELS_ID, (client, handler, buf, responseSender) -> {
+            com.Theus452.walkietalkie.networking.packet.PacketSyncChannels packet = new com.Theus452.walkietalkie.networking.packet.PacketSyncChannels(buf);
+            client.execute(() -> com.Theus452.walkietalkie.networking.packet.PacketSyncChannels.handle(packet));
+        });
     }
 }

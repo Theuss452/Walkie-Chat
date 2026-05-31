@@ -51,6 +51,7 @@ public class ForgeWalkieTalkieMod {
         ModSounds.WALKIE_TALKIE_CHANGE_CHANNEL = ForgeSounds.WALKIE_TALKIE_CHANGE_CHANNEL_REG_OBJ;
         ModSounds.WALKIE_TALKIE_SEND_MSG = ForgeSounds.WALKIE_TALKIE_SEND_MSG_REG_OBJ;
         ModSounds.WALKIE_TALKIE_MSG_RECEIVER = ForgeSounds.WALKIE_TALKIE_MSG_RECEIVER_REG_OBJ;
+        ModSounds.WALKIE_TALKIE_BUTTON_CLICK = ForgeSounds.WALKIE_TALKIE_BUTTON_CLICK_REG_OBJ;
         ModCreativeModTabs.WALKIETALKIE_TAB = ForgeCreativeTabs.WALKIETALKIE_TAB;
 
         ModLoadingContext.get().registerConfig(ModConfig.Type.SERVER, ForgeModConfigs.SPEC);

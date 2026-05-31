@@ -26,6 +26,19 @@ public class FabricPlatformHelper implements IPlatformHelper {
     }
 
     @Override
+    public void sendToClient(Object packet, net.minecraft.server.level.ServerPlayer player) {
+        if (packet instanceof com.Theus452.walkietalkie.networking.packet.PacketPushChatMessage p) {
+            FriendlyByteBuf buf = PacketByteBufs.create();
+            p.toBytes(buf);
+            net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(player, FabricPacketHandler.PUSH_CHAT_MESSAGE_ID, buf);
+        } else if (packet instanceof com.Theus452.walkietalkie.networking.packet.PacketSyncChannels p) {
+            FriendlyByteBuf buf = PacketByteBufs.create();
+            p.toBytes(buf);
+            net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(player, FabricPacketHandler.SYNC_CHANNELS_ID, buf);
+        }
+    }
+
+    @Override
     public double getChatRange() {
         
         return FabricModConfigs.getChatRange();

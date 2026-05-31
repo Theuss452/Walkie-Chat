@@ -31,5 +31,10 @@ public class FabricSounds {
         ModSounds.WALKIE_TALKIE_CHANGE_CHANNEL = () -> changeChannelEvent;
         ModSounds.WALKIE_TALKIE_SEND_MSG = () -> sendMsgEvent;
         ModSounds.WALKIE_TALKIE_MSG_RECEIVER = () -> msgReceiverEvent;
+
+        ResourceLocation buttonClickId = new ResourceLocation(WalkieTalkieMod.MOD_ID, "walkie_button_click");
+        SoundEvent buttonClickEvent = SoundEvent.createVariableRangeEvent(buttonClickId);
+        Registry.register(BuiltInRegistries.SOUND_EVENT, buttonClickId, buttonClickEvent);
+        ModSounds.WALKIE_TALKIE_BUTTON_CLICK = () -> buttonClickEvent;
     }
 }

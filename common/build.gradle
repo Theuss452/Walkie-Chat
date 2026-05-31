@@ -15,6 +15,6 @@ dependencies {
     // and get the mixin dependencies
     // Do NOT use other classes from fabric loader
     modImplementation "net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}"
-    // Remove the next line if you don't use mixins in common
-    // mixin "net.fabricmc:fabric-mixin-compile-extensions:${rootProject.fabric_mixin_compile_extensions_version}"
+    annotationProcessor "net.fabricmc:fabric-mixin-compile-extensions:0.6.0"
+    annotationProcessor "net.fabricmc:sponge-mixin:0.12.0+mixin.0.8.5"
 }
