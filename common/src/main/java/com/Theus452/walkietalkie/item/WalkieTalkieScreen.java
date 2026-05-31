@@ -45,7 +45,6 @@ public class WalkieTalkieScreen extends Screen {
     private EditBox chatInput;
     private int scrollOffset = 0;
     private long openTime;
-    private long txFlashEnd = 0L;
     private String myName = "";
     private boolean active = false;
 
@@ -61,6 +60,7 @@ public class WalkieTalkieScreen extends Screen {
     @Override
     protected void init() {
         this.openTime = System.currentTimeMillis();
+        this.scrollOffset = 0;
         if (minecraft != null && minecraft.player != null) {
             myName = minecraft.player.getName().getString();
             ItemStack stack = minecraft.player.getItemInHand(hand);
@@ -155,11 +155,6 @@ public class WalkieTalkieScreen extends Screen {
         LocalTime lt = LocalTime.now();
         String clock = String.format("%02d:%02d", lt.getHour(), lt.getMinute());
         g.drawString(font, clock, px + PANEL_W - 40, hy + 16, C_TEXT_DIM, false);
-
-        if (now < txFlashEnd) {
-            boolean txBlink = (now / 150) % 2 == 0;
-            g.drawString(font, Component.literal(txBlink ? "§c" : "§4").append("TX"), px + PANEL_W - 45, hy + 4, 0xFFFFFFFF, false);
-        }
     }
 
     private void drawTabs(GuiGraphics g, int px, int py) {
@@ -522,12 +517,21 @@ public class WalkieTalkieScreen extends Screen {
                 if (!msg.isEmpty() && minecraft != null && minecraft.player != null) {
                     minecraft.player.connection.sendChat(msg);
                     chatInput.setValue("");
-                    txFlashEnd = System.currentTimeMillis() + 800;
                 }
                 return true;
             }
         }
         return super.keyPressed(key, scan, mods);
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
+        if (currentTab == Tab.CHAT) {
+            int visibleLines = ((PANEL_H - HEADER_H - TAB_H - FOOTER_H) - 10) / 10;
+            scrollOffset = Mth.clamp(scrollOffset + (int) Math.signum(amount), 0, Math.max(0, cachedLines.size() - visibleLines));
+            return true;
+        }
+        return super.mouseScrolled(mouseX, mouseY, amount);
     }
 
     private void playSfx(net.minecraft.sounds.SoundEvent se, float vol) {
