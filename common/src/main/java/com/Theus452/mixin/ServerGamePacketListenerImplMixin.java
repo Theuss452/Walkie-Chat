@@ -85,7 +85,17 @@ public class ServerGamePacketListenerImplMixin {
         List<ServerPlayer> players = player.getServer().getPlayerList().getPlayers();
         List<ServerPlayer> receivers = new ArrayList<>();
 
+        Component hoverText = Component.translatable("tooltip.walkietalkie.frequency.chat", freq);
+        Component chatMessage = Component.literal("§a[Walkie-Talkie]§7[" + freq + "]")
+                .withStyle(style -> style.withHoverEvent(new net.minecraft.network.chat.HoverEvent(net.minecraft.network.chat.HoverEvent.Action.SHOW_TEXT, hoverText)))
+                .copy()
+                .append(Component.literal(" §f<" + player.getDisplayName().getString() + "> " + msg));
+
+        player.sendSystemMessage(chatMessage);
+        WalkieNetworkHandler.sendPushMessage(player, freq, player.getName().getString(), msg);
+
         for (ServerPlayer receiver : players) {
+            if (receiver == player) continue;
             boolean receiverHasWalkie = false;
             for (ItemStack s : receiver.getInventory().items) {
                 if (s.getItem() instanceof WalkieTalkieItem && freq.equals(WalkieTalkieItem.getFrequency(s))) {
@@ -102,9 +112,15 @@ public class ServerGamePacketListenerImplMixin {
                 }
             }
 
-            if (receiverHasWalkie && receiver != player) {
+            if (receiverHasWalkie) {
+                receiver.sendSystemMessage(chatMessage);
                 WalkieNetworkHandler.sendPushMessage(receiver, freq, player.getName().getString(), msg);
                 receivers.add(receiver);
+                
+                com.Theus452.walkietalkie.util.IncomingMessageSoundLimiter.SoundDecision soundDecision = com.Theus452.walkietalkie.util.IncomingMessageSoundLimiter.evaluate(receiver);
+                if (soundDecision.shouldPlay()) {
+                    receiver.playNotifySound(com.Theus452.walkietalkie.sound.ModSounds.WALKIE_TALKIE_MSG_RECEIVER.get(), net.minecraft.sounds.SoundSource.PLAYERS, soundDecision.volume(), soundDecision.pitch());
+                }
             }
         }
 

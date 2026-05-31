@@ -229,14 +229,14 @@ public class ConnectionManager {
         return count;
     }
     public static void syncActiveChannels(MinecraftServer server) {
-        Map<String, Integer> freqCounts = new HashMap<>();
+        Map<String, List<String>> freqPlayers = new HashMap<>();
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             for (String freq : collectConnectionFrequencies(player)) {
-                freqCounts.put(freq, freqCounts.getOrDefault(freq, 0) + 1);
+                freqPlayers.computeIfAbsent(freq, k -> new ArrayList<>()).add(player.getDisplayName().getString());
             }
         }
         List<PacketSyncChannels.ChannelInfo> currentChannels = new ArrayList<>();
-        for (Map.Entry<String, Integer> entry : freqCounts.entrySet()) {
+        for (Map.Entry<String, List<String>> entry : freqPlayers.entrySet()) {
             currentChannels.add(new PacketSyncChannels.ChannelInfo(entry.getKey(), entry.getValue()));
         }
         currentChannels.sort((a, b) -> {

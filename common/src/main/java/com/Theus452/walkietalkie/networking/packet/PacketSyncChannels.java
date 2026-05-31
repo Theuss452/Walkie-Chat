@@ -9,15 +9,16 @@ import java.util.List;
 public class PacketSyncChannels {
     public static class ChannelInfo {
         private final String frequency;
-        private final int playerCount;
+        private final List<String> players;
 
-        public ChannelInfo(String frequency, int playerCount) {
+        public ChannelInfo(String frequency, List<String> players) {
             this.frequency = frequency;
-            this.playerCount = playerCount;
+            this.players = Collections.unmodifiableList(new ArrayList<>(players));
         }
 
         public String frequency() { return frequency; }
-        public int playerCount() { return playerCount; }
+        public int playerCount() { return players.size(); }
+        public List<String> players() { return players; }
     }
 
     private final List<ChannelInfo> channels;
@@ -30,8 +31,12 @@ public class PacketSyncChannels {
         List<ChannelInfo> list = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
             String freq = buf.readUtf(10);
-            int count = buf.readVarInt();
-            list.add(new ChannelInfo(freq, count));
+            int pSize = buf.readVarInt();
+            List<String> players = new ArrayList<>(pSize);
+            for (int j = 0; j < pSize; j++) {
+                players.add(buf.readUtf(32));
+            }
+            list.add(new ChannelInfo(freq, players));
         }
         this.channels = Collections.unmodifiableList(list);
     }
@@ -40,7 +45,10 @@ public class PacketSyncChannels {
         buf.writeVarInt(channels.size());
         for (ChannelInfo ch : channels) {
             buf.writeUtf(ch.frequency(), 10);
-            buf.writeVarInt(ch.playerCount());
+            buf.writeVarInt(ch.players().size());
+            for (String p : ch.players()) {
+                buf.writeUtf(p, 32);
+            }
         }
     }
 
