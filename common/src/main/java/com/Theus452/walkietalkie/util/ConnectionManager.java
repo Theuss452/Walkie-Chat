@@ -13,11 +13,16 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.ArrayList;
+import java.util.List;
+import com.Theus452.walkietalkie.networking.packet.PacketSyncChannels;
 
 public class ConnectionManager {
     private static final Map<UUID, Map<String, Long>> disconnectionTimers = new HashMap<>();
     private static final Map<UUID, Set<String>> activeFrequencies = new HashMap<>();
     private static final long TIMEOUT = 30 * 1000;
+    private static List<PacketSyncChannels.ChannelInfo> lastSentChannels = null;
+    private static int tickCounter = 0;
 
     public static void playerDroppedWalkieTalkie(ServerPlayer player, String frequency) {
         if (countConnectionsWithFrequency(player, frequency) == 0) {
@@ -82,6 +87,10 @@ public class ConnectionManager {
     }
 
     public static void tick(MinecraftServer server) {
+        tickCounter++;
+        if (tickCounter % 10 == 0) {
+            syncActiveChannels(server);
+        }
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             refreshPlayer(player);
         }
@@ -218,5 +227,41 @@ public class ConnectionManager {
         WalkieBlockRegistry.addOwnedFrequencies(player.getUUID(), ownedFrequencies);
         count += ownedFrequencies.size();
         return count;
+    }
+    public static void syncActiveChannels(MinecraftServer server) {
+        Map<String, Integer> freqCounts = new HashMap<>();
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            for (String freq : collectConnectionFrequencies(player)) {
+                freqCounts.put(freq, freqCounts.getOrDefault(freq, 0) + 1);
+            }
+        }
+        List<PacketSyncChannels.ChannelInfo> currentChannels = new ArrayList<>();
+        for (Map.Entry<String, Integer> entry : freqCounts.entrySet()) {
+            currentChannels.add(new PacketSyncChannels.ChannelInfo(entry.getKey(), entry.getValue()));
+        }
+        currentChannels.sort((a, b) -> {
+            try {
+                return Integer.compare(Integer.parseInt(a.frequency()), Integer.parseInt(b.frequency()));
+            } catch (NumberFormatException e) {
+                return a.frequency().compareTo(b.frequency());
+            }
+        });
+        boolean changed = lastSentChannels == null || lastSentChannels.size() != currentChannels.size();
+        if (!changed) {
+            for (int i = 0; i < currentChannels.size(); i++) {
+                PacketSyncChannels.ChannelInfo a = lastSentChannels.get(i);
+                PacketSyncChannels.ChannelInfo b = currentChannels.get(i);
+                if (!a.frequency().equals(b.frequency()) || a.playerCount() != b.playerCount()) {
+                    changed = true;
+                    break;
+                }
+            }
+        }
+        if (changed) {
+            lastSentChannels = currentChannels;
+            for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+                com.Theus452.walkietalkie.networking.WalkieNetworkHandler.sendSyncChannels(player, currentChannels);
+            }
+        }
     }
 }

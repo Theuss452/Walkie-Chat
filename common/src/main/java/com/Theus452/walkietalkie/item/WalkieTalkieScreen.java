@@ -107,7 +107,7 @@ public class WalkieTalkieScreen extends Screen {
 
         switch (currentTab) {
             case FREQUENCY -> drawFrequencyTab(g, px, contentY, contentH, mx, my);
-            case CHANNELS  -> drawChannelsTab(g, px, py, contentY, contentH);
+            case CHANNELS  -> drawChannelsTab(g, px, py, contentY, contentH, mx, my);
             case CHAT      -> drawChatTab(g, px, contentY, contentH);
         }
 
@@ -200,18 +200,20 @@ public class WalkieTalkieScreen extends Screen {
 
         g.drawCenteredString(font, "§8Input Frequency", cx, ly - 13, C_TEXT_DIM);
 
-        String d1 = freqInput.length() > 0 ? String.valueOf(freqInput.charAt(0)) : "_";
-        String d2 = freqInput.length() > 1 ? String.valueOf(freqInput.charAt(1)) : "_";
-        String d3 = freqInput.length() > 2 ? String.valueOf(freqInput.charAt(2)) : "_";
-
-        g.drawCenteredString(font, "§a§l" + d1, cx - 16, ly + 20, 0xFFDDFFDD);
-        g.drawCenteredString(font, "§a§l" + d2, cx, ly + 20, 0xFFDDFFDD);
-        g.drawCenteredString(font, "§a§l" + d3, cx + 16, ly + 20, 0xFFDDFFDD);
+        if (freqInput.isEmpty()) {
+            g.drawCenteredString(font, "§a§l_", cx - 16, ly + 20, 0xFFDDFFDD);
+            g.drawCenteredString(font, "§a§l_", cx, ly + 20, 0xFFDDFFDD);
+            g.drawCenteredString(font, "§a§l_", cx + 16, ly + 20, 0xFFDDFFDD);
+        } else {
+            for (int i = 0; i < freqInput.length(); i++) {
+                g.drawCenteredString(font, "§a§l" + freqInput.charAt(i), cx - 16 + i * 16, ly + 20, 0xFFDDFFDD);
+            }
+        }
 
         boolean blink = (now / 500) % 2 == 0;
         if (blink && freqInput.length() < 3) {
             int cursorX = cx - 16 + freqInput.length() * 16;
-            g.drawCenteredString(font, "§2|", cursorX, ly + 10, 0xFFDDFFDD);
+            g.drawCenteredString(font, "§2|", cursorX, ly + 12, 0xFFDDFFDD);
         }
 
         g.drawCenteredString(font, "§2MHz", cx, ly + 34, 0xFF4A7A4A);
@@ -237,13 +239,9 @@ public class WalkieTalkieScreen extends Screen {
         g.drawCenteredString(font, (isEnabled ? (isHovered ? "§a§l" : "§a") : "§8") + "CONNECT", cx, btnY + 5, btnTextColor);
     }
 
-    private final java.util.List<ChannelRow> channelRows = new java.util.ArrayList<>();
-    private record ChannelRow(int y, String frequency) {}
-
-    private void drawChannelsTab(GuiGraphics g, int px, int py, int contentY, int contentH) {
+    private void drawChannelsTab(GuiGraphics g, int px, int py, int contentY, int contentH, int mx, int my) {
         int cx = px + PANEL_W / 2;
         List<PacketSyncChannels.ChannelInfo> channels = ChannelCache.get();
-        channelRows.clear();
 
         g.drawCenteredString(font, "Active Channels", cx, contentY + 6, C_TEXT_DIM);
         g.drawCenteredString(font, "Click to Join", cx, contentY + 16, 0xFF3A5A3A);
@@ -253,23 +251,34 @@ public class WalkieTalkieScreen extends Screen {
             return;
         }
 
+        int rowW = 180;
+        int rowH = 16;
+        int rx = cx - rowW / 2;
         int rowY = contentY + 28;
-        int listX = px + 10;
-        int rowW = PANEL_W - 20;
-        for (int i = 0; i < Math.min(10, channels.size()); i++) {
+
+        for (int i = 0; i < Math.min(4, channels.size()); i++) {
             PacketSyncChannels.ChannelInfo info = channels.get(i);
+            int ry = rowY + i * 20;
+
             boolean isCurrent = info.frequency().equals(freqInput);
-            channelRows.add(new ChannelRow(rowY, info.frequency()));
+            boolean isHovered = mx >= rx && mx <= rx + rowW && my >= ry && my <= ry + rowH;
 
-            if (isCurrent) {
-                g.fill(listX, rowY - 1, listX + rowW, rowY + 10, 0x2244FF44);
-            }
+            int bg = isCurrent ? 0xFF132418 : (isHovered ? 0xFF101C14 : C_DEEP);
+            int border = isCurrent ? C_ACCENT : (isHovered ? C_BORDER_GLOW : C_BORDER);
 
-            String prefix = isCurrent ? "§a▶ " : "§7  ";
-            g.drawString(font, Component.literal(prefix + "CH " + info.frequency()), listX + 2, rowY, 0xFFFFFFFF, false);
-            g.drawString(font, "Users: " + info.playerCount(), listX + 115, rowY, 0xFFFFFFFF, false);
+            g.fill(rx + 1, ry + 1, rx + rowW - 1, ry + rowH - 1, bg);
+            g.fill(rx, ry, rx + rowW, ry + 1, border);
+            g.fill(rx, ry + rowH - 1, rx + rowW, ry + rowH, border);
+            g.fill(rx, ry, rx + 1, ry + rowH, border);
+            g.fill(rx + rowW - 1, ry, rx + rowW, ry + rowH, border);
 
-            rowY += 13;
+            String prefix = isCurrent ? "§a▶ " : "  ";
+            g.drawString(font, prefix + "§a" + info.frequency() + " MHz", rx + 6, ry + 4, 0xFFFFFFFF, false);
+
+            String userText = info.playerCount() + (info.playerCount() == 1 ? " User" : " Users");
+            String activeDot = "§a⬤ ";
+            int textW = font.width(activeDot + userText);
+            g.drawString(font, activeDot + "§2" + userText, rx + rowW - textW - 6, ry + 4, 0xFFFFFFFF, false);
         }
     }
 
@@ -365,9 +374,18 @@ public class WalkieTalkieScreen extends Screen {
         }
 
         if (currentTab == Tab.CHANNELS && btn == 0) {
-            for (ChannelRow row : channelRows) {
-                if (my >= row.y() - 1 && my <= row.y() + 11) {
-                    freqInput = row.frequency();
+            List<PacketSyncChannels.ChannelInfo> channels = ChannelCache.get();
+            int cx = px + PANEL_W / 2;
+            int rowW = 180;
+            int rowH = 16;
+            int rx = cx - rowW / 2;
+            int rowY = py + HEADER_H + TAB_H + 28;
+
+            for (int i = 0; i < Math.min(4, channels.size()); i++) {
+                int ry = rowY + i * 20;
+                if (mx >= rx && mx <= rx + rowW && my >= ry && my <= ry + rowH) {
+                    PacketSyncChannels.ChannelInfo info = channels.get(i);
+                    freqInput = info.frequency();
                     Platform.getHelper().sendToServer(new PacketSetFrequency(freqInput, hand));
                     currentTab = Tab.CHAT;
                     chatInput.setFocused(true);

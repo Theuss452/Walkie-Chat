@@ -42,6 +42,7 @@ public class PacketSetFrequency {
         }
 
         WalkieTalkieItem.setFrequency(stack, packet.newFrequency);
+        com.Theus452.walkietalkie.util.ConnectionManager.syncActiveChannels(player.server);
         player.playNotifySound(ModSounds.WALKIE_TALKIE_CHANGE_CHANNEL.get(), SoundSource.PLAYERS, 1.0F, 1.0F);
         ConnectionManager.disconnectImmediatelyIfAbsent(player, oldFrequency);
         ConnectionManager.refreshPlayer(player);
