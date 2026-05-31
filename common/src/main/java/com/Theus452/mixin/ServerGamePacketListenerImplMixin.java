@@ -1,12 +1,16 @@
 package com.Theus452.mixin;
 
 import com.Theus452.walkietalkie.api.WalkieChatCallback;
+import com.Theus452.walkietalkie.block.WalkieTalkieBlockEntity;
+import com.Theus452.walkietalkie.compat.AttractToChatCompat;
 import com.Theus452.walkietalkie.item.WalkieTalkieItem;
-import com.Theus452.walkietalkie.platform.Platform;
 import com.Theus452.walkietalkie.networking.WalkieNetworkHandler;
+import com.Theus452.walkietalkie.platform.Platform;
+import com.Theus452.walkietalkie.util.WalkieMessageHelper;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ServerboundChatPacket;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
@@ -29,21 +33,30 @@ public class ServerGamePacketListenerImplMixin {
         String content = packet.message();
         if (content.startsWith("/")) return;
 
+        if (AttractToChatCompat.isVocallyMuted(player)) {
+            player.displayClientMessage(Component.translatable("message.walkietalkie.vocal_muted"), true);
+            ci.cancel();
+            return;
+        }
+
+        MinecraftServer server = player.getServer();
+        if (server == null) {
+            ci.cancel();
+            return;
+        }
+
         ItemStack stack = player.getItemInHand(InteractionHand.MAIN_HAND);
         if (!(stack.getItem() instanceof WalkieTalkieItem)) {
             stack = player.getItemInHand(InteractionHand.OFF_HAND);
         }
 
-        boolean holdingActive = false;
-        String frequency = "";
-
         if (stack.getItem() instanceof WalkieTalkieItem) {
-            frequency = WalkieTalkieItem.getFrequency(stack);
-            holdingActive = !frequency.isEmpty();
-        }
-
-        if (holdingActive) {
-            broadcastRadioMessage(content, frequency);
+            String frequency = WalkieTalkieItem.getFrequency(stack);
+            if (frequency.isEmpty()) {
+                player.sendSystemMessage(Component.translatable("message.walkietalkie.define.frequency"));
+            } else {
+                WalkieMessageHelper.broadcastMessage(server, player, frequency, content);
+            }
             if (WalkieChatCallback.PROXIMITY_CHAT.hasListeners()) {
                 WalkieChatCallback.PROXIMITY_CHAT.invoke(new WalkieChatCallback.ProximityData(player, content, List.of(), 0));
             }
@@ -51,8 +64,18 @@ public class ServerGamePacketListenerImplMixin {
             return;
         }
 
-        double range = Platform.getHelper().getChatRange();
-        List<ServerPlayer> players = player.getServer().getPlayerList().getPlayers();
+        WalkieTalkieBlockEntity nearbyWalkie = WalkieMessageHelper.findNearbyActiveBlock(player);
+        if (nearbyWalkie != null) {
+            WalkieMessageHelper.broadcastMessage(server, player, nearbyWalkie.getFrequency(), content);
+            if (WalkieChatCallback.PROXIMITY_CHAT.hasListeners()) {
+                WalkieChatCallback.PROXIMITY_CHAT.invoke(new WalkieChatCallback.ProximityData(player, content, List.of(), 0));
+            }
+            ci.cancel();
+            return;
+        }
+
+        double range = AttractToChatCompat.getEffectiveProximityRange(content, Platform.getHelper().getChatRange());
+        List<ServerPlayer> players = server.getPlayerList().getPlayers();
         Component formattedMessage = Component.translatable("chat.type.text", player.getDisplayName(), content);
 
         int recipients = 0;
@@ -93,6 +116,7 @@ public class ServerGamePacketListenerImplMixin {
 
         player.sendSystemMessage(chatMessage);
         WalkieNetworkHandler.sendPushMessage(player, freq, player.getName().getString(), msg);
+        player.playNotifySound(com.Theus452.walkietalkie.sound.ModSounds.WALKIE_TALKIE_SEND_MSG.get(), net.minecraft.sounds.SoundSource.PLAYERS, 0.6f, 1.0f);
 
         for (ServerPlayer receiver : players) {
             if (receiver == player) continue;

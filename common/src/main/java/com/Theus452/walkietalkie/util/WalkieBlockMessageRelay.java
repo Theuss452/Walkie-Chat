@@ -66,6 +66,7 @@ public final class WalkieBlockMessageRelay {
                 if (listener.distanceToSqr(x, y, z) > LISTEN_RANGE_SQ) continue;
                 if (!message.deliveredPlayers.add(listener.getUUID())) continue;
                 listener.sendSystemMessage(WalkieMessageHelper.createWalkieTalkieMessage(sender, message.rawText, message.frequency, WalkieMessageHelper.countWalkieTalkies(listener) > 1));
+                com.Theus452.walkietalkie.networking.WalkieNetworkHandler.sendPushMessage(listener, message.frequency, sender.getName().getString(), message.rawText);
                 soundListeners.add(listener);
             }
 

@@ -385,9 +385,7 @@ public class WalkieTalkieScreen extends Screen {
         for (int i = cachedLines.size() - 1 - scrollOffset; i >= 0 && renderY > contentY + 5; i--) {
             FormattedCharSequence line = cachedLines.get(i);
             boolean isMine = cachedIsMine.get(i);
-            int lx = isMine ? (px + PANEL_W - font.width(line) - 15) : (px + 15);
-            
-            if (isMine) g.fill(lx - 2, renderY - 1, lx + font.width(line) + 2, renderY + 9, 0x3344FF44);
+            int lx = px + 15;
             
             g.drawString(font, line, lx, renderY, isMine ? 0xFFAAFFBB : 0xFFBBCCAA, false);
             renderY -= 10;
@@ -397,9 +395,9 @@ public class WalkieTalkieScreen extends Screen {
     private void updateMessageCache(List<ChannelMessageCache.ChatEntry> messages) {
         cachedLines.clear();
         cachedIsMine.clear();
-        int maxW = PANEL_W - 40;
+        int maxW = PANEL_W - 30;
         for (ChannelMessageCache.ChatEntry entry : messages) {
-            String prefix = entry.senderName().equals(myName) ? "" : entry.senderName() + ": ";
+            String prefix = entry.senderName() + ": ";
             List<FormattedCharSequence> split = font.split(Component.literal(prefix + entry.message()), maxW);
             for (FormattedCharSequence s : split) {
                 cachedLines.add(s);
@@ -525,7 +523,6 @@ public class WalkieTalkieScreen extends Screen {
                     minecraft.player.connection.sendChat(msg);
                     chatInput.setValue("");
                     txFlashEnd = System.currentTimeMillis() + 800;
-                    playSfx(com.Theus452.walkietalkie.sound.ModSounds.WALKIE_TALKIE_SEND_MSG.get(), 0.6f);
                 }
                 return true;
             }

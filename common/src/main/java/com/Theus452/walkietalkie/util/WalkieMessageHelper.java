@@ -3,6 +3,7 @@ package com.Theus452.walkietalkie.util;
 import com.Theus452.walkietalkie.block.WalkieTalkieBlockEntity;
 import com.Theus452.walkietalkie.item.WalkieTalkieItem;
 import com.Theus452.walkietalkie.networking.WalkieBlockRegistry;
+import com.Theus452.walkietalkie.networking.WalkieNetworkHandler;
 import com.Theus452.walkietalkie.sound.ModSounds;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.GlobalPos;
@@ -55,6 +56,7 @@ public final class WalkieMessageHelper {
         }
 
         sender.sendSystemMessage(createWalkieTalkieMessage(sender, rawText, frequency, countWalkieTalkies(sender) > 1));
+        WalkieNetworkHandler.sendPushMessage(sender, frequency, sender.getName().getString(), rawText);
         if (ModSounds.WALKIE_TALKIE_SEND_MSG != null) {
             sender.playNotifySound(ModSounds.WALKIE_TALKIE_SEND_MSG.get(), SoundSource.PLAYERS, 1.0F, 1.0F);
         }
@@ -105,6 +107,7 @@ public final class WalkieMessageHelper {
         for (ServerPlayer recipient : recipients) {
             Component messageToSend = createWalkieTalkieMessage(sender, rawText, frequency, countWalkieTalkies(recipient) > 1);
             recipient.sendSystemMessage(messageToSend);
+            WalkieNetworkHandler.sendPushMessage(recipient, frequency, sender.getName().getString(), rawText);
             IncomingMessageSoundLimiter.SoundDecision soundDecision = IncomingMessageSoundLimiter.evaluate(recipient);
             if (!blockRecipients.contains(recipient) && soundDecision.shouldPlay() && ModSounds.WALKIE_TALKIE_MSG_RECEIVER != null) {
                 recipient.playNotifySound(ModSounds.WALKIE_TALKIE_MSG_RECEIVER.get(), SoundSource.PLAYERS, soundDecision.volume(), soundDecision.pitch());
