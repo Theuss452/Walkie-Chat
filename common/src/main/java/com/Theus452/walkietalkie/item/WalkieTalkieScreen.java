@@ -47,6 +47,7 @@ public class WalkieTalkieScreen extends Screen {
     private long openTime;
     private String myName = "";
     private boolean active = false;
+    private boolean isDraggingScrollbar = false;
 
     private final List<FormattedCharSequence> cachedLines = new ArrayList<>();
     private final List<Boolean> cachedIsMine = new ArrayList<>();
@@ -75,7 +76,7 @@ public class WalkieTalkieScreen extends Screen {
         }
 
         int px = panelX(), py = panelY();
-        chatInput = new EditBox(font, px + 10, py + PANEL_H - FOOTER_H + 6, PANEL_W - 20, 14, Component.literal(""));
+        chatInput = new EditBox(font, px + 10, py + PANEL_H - FOOTER_H + 9, PANEL_W - 20, 14, Component.literal(""));
         chatInput.setMaxLength(100);
         chatInput.setBordered(false);
         chatInput.setTextColor(0xFFAAFFBB);
@@ -84,6 +85,14 @@ public class WalkieTalkieScreen extends Screen {
         
         chatInput.visible = (currentTab == Tab.CHAT && active);
         setInitialFocus(chatInput);
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        if (chatInput != null) {
+            chatInput.tick();
+        }
     }
 
     private int panelX() { return this.width  / 2 - PANEL_W / 2; }
@@ -97,21 +106,21 @@ public class WalkieTalkieScreen extends Screen {
         drawPanel(g, px, py);
         drawHeader(g, px, py, mx, my);
         
-        drawTabs(g, px, py);
+        drawTabs(g, px, py, mx, my);
 
         int contentY = py + HEADER_H + TAB_H;
         int contentH = PANEL_H - HEADER_H - TAB_H - FOOTER_H;
 
-        chatInput.visible = (currentTab == Tab.CHAT && !freqInput.isEmpty());
+        chatInput.visible = (currentTab == Tab.CHAT && active);
 
         switch (currentTab) {
             case FREQUENCY -> drawFrequencyTab(g, px, contentY, contentH, mx, my);
             case CHANNELS  -> drawChannelsTab(g, px, py, contentY, contentH, mx, my);
-            case CHAT      -> drawChatTab(g, px, contentY, contentH);
+            case CHAT      -> drawChatTab(g, px, contentY, contentH, mx, my);
             case INFO      -> drawInfoTab(g, px, contentY, contentH, mx, my);
         }
 
-        if (currentTab == Tab.CHAT && !freqInput.isEmpty()) {
+        if (currentTab == Tab.CHAT && active) {
             int fy = py + PANEL_H - FOOTER_H;
             g.fill(px + 2, fy, px + PANEL_W - 2, py + PANEL_H - 2, C_DEEP);
             g.fill(px + 5, fy + 4, px + PANEL_W - 5, fy + 5, C_BORDER);
@@ -157,36 +166,31 @@ public class WalkieTalkieScreen extends Screen {
         g.drawString(font, clock, px + PANEL_W - 40, hy + 16, C_TEXT_DIM, false);
     }
 
-    private void drawTabs(GuiGraphics g, int px, int py) {
+    private void drawTabs(GuiGraphics g, int px, int py, int mx, int my) {
         int ty = py + HEADER_H;
         int tw = PANEL_W / 2;
 
-        if (freqInput.isEmpty()) {
-            String[] keys = { "FREQ", "CHANNELS" };
-            Tab[] tabs = { Tab.FREQUENCY, Tab.CHANNELS };
-            for (int i = 0; i < 2; i++) {
-                Tab t = tabs[i];
-                int tx = px + 2 + i * (tw - 1);
-                boolean isTabActive = currentTab == t;
-
-                g.fill(tx, ty, tx + tw - 2, ty + TAB_H, isTabActive ? C_TAB_ACTIVE : C_TAB_BG);
-                if (isTabActive) g.fill(tx, ty, tx + tw - 2, ty + 1, C_ACCENT);
-                
-                g.drawCenteredString(font, (isTabActive ? "§a" : "§8") + keys[i], tx + tw / 2 - 1, ty + 6, isTabActive ? 0xFFBBFFBB : 0xFF3A5A3A);
+        String[] keys = !active ? new String[]{ "FREQ", "CHANNELS" } : new String[]{ "CHAT", "INFO" };
+        Tab[] tabs = !active ? new Tab[]{ Tab.FREQUENCY, Tab.CHANNELS } : new Tab[]{ Tab.CHAT, Tab.INFO };
+        
+        for (int i = 0; i < 2; i++) {
+            Tab t = tabs[i];
+            int tx = px + 2 + i * (tw - 2);
+            boolean isTabActive = currentTab == t;
+            boolean isHovered = mx >= tx && mx <= tx + tw - 2 && my >= ty && my <= ty + TAB_H;
+            
+            int bgColor = isTabActive ? C_TAB_ACTIVE : (isHovered ? 0xFF0D1810 : C_TAB_BG);
+            int textColor = isTabActive ? 0xFFBBFFBB : (isHovered ? 0xFF619665 : 0xFF3A5A3A);
+            
+            g.fill(tx, ty, tx + tw - 2, ty + TAB_H, bgColor);
+            if (isHovered && !isTabActive) {
+                g.fill(tx, ty, tx + tw - 2, ty + 1, C_BORDER_GLOW);
             }
-        } else {
-            String[] keys = { "CHAT", "INFO" };
-            Tab[] tabs = { Tab.CHAT, Tab.INFO };
-            for (int i = 0; i < 2; i++) {
-                Tab t = tabs[i];
-                int tx = px + 2 + i * (tw - 1);
-                boolean isTabActive = currentTab == t;
-
-                g.fill(tx, ty, tx + tw - 2, ty + TAB_H, isTabActive ? C_TAB_ACTIVE : C_TAB_BG);
-                if (isTabActive) g.fill(tx, ty, tx + tw - 2, ty + 1, C_ACCENT);
-                
-                g.drawCenteredString(font, (isTabActive ? "§a" : "§8") + keys[i], tx + tw / 2 - 1, ty + 6, isTabActive ? 0xFFBBFFBB : 0xFF3A5A3A);
+            if (isTabActive) {
+                g.fill(tx, ty, tx + tw - 2, ty + 1, C_ACCENT);
             }
+            
+            g.drawCenteredString(font, (isTabActive ? "§a" : (isHovered ? "§2" : "§8")) + keys[i], tx + (tw - 2) / 2, ty + 6, textColor);
         }
     }
 
@@ -350,8 +354,8 @@ public class WalkieTalkieScreen extends Screen {
 
     private int lastMessageCount = 0;
 
-    private void drawChatTab(GuiGraphics g, int px, int contentY, int contentH) {
-        if (freqInput.isEmpty()) {
+    private void drawChatTab(GuiGraphics g, int px, int contentY, int contentH, int mx, int my) {
+        if (!active) {
             g.drawCenteredString(font, "Join a channel first", px + PANEL_W / 2, contentY + contentH / 2, C_TEXT_DIM);
             return;
         }
@@ -385,6 +389,19 @@ public class WalkieTalkieScreen extends Screen {
             g.drawString(font, line, lx, renderY, isMine ? 0xFFAAFFBB : 0xFFBBCCAA, false);
             renderY -= 10;
         }
+
+        int maxScroll = Math.max(0, cachedLines.size() - visibleLines);
+        if (maxScroll > 0) {
+            int sbX = px + PANEL_W - 8;
+            int sbY = contentY + 4;
+            int sbH = contentH - 8;
+            g.fill(sbX, sbY, sbX + 4, sbY + sbH, 0x44000000);
+            int thumbH = Math.max(10, (int) (((float) visibleLines / cachedLines.size()) * sbH));
+            int thumbY = sbY + (int) (((float) (maxScroll - scrollOffset) / maxScroll) * (sbH - thumbH));
+            boolean isHovered = mx >= sbX && mx <= sbX + 4 && my >= thumbY && my <= thumbY + thumbH;
+            int thumbColor = isHovered || isDraggingScrollbar ? 0xFF388540 : C_BORDER_GLOW;
+            g.fill(sbX, thumbY, sbX + 4, thumbY + thumbH, thumbColor);
+        }
     }
 
     private void updateMessageCache(List<ChannelMessageCache.ChatEntry> messages) {
@@ -404,11 +421,33 @@ public class WalkieTalkieScreen extends Screen {
     @Override
     public boolean mouseClicked(double mx, double my, int btn) {
         int px = panelX(), py = panelY();
+        if (currentTab == Tab.CHAT && btn == 0) {
+            int contentY = py + HEADER_H + TAB_H;
+            int contentH = PANEL_H - HEADER_H - TAB_H - FOOTER_H;
+            int visibleLines = (contentH - 10) / 10;
+            int maxScroll = Math.max(0, cachedLines.size() - visibleLines);
+            if (maxScroll > 0) {
+                int sbX = px + PANEL_W - 8;
+                int sbY = contentY + 4;
+                int sbH = contentH - 8;
+                int thumbH = Math.max(10, (int) (((float) visibleLines / cachedLines.size()) * sbH));
+                int thumbY = sbY + (int) (((float) (maxScroll - scrollOffset) / maxScroll) * (sbH - thumbH));
+                if (mx >= sbX && mx <= sbX + 4 && my >= sbY && my <= sbY + sbH) {
+                    isDraggingScrollbar = true;
+                    if (my < thumbY || my > thumbY + thumbH) {
+                        float pct = (float)(my - sbY - thumbH / 2) / (sbH - thumbH);
+                        pct = Mth.clamp(pct, 0f, 1f);
+                        scrollOffset = maxScroll - (int)(pct * maxScroll);
+                    }
+                    return true;
+                }
+            }
+        }
         int ty = py + HEADER_H;
         int tw = PANEL_W / 2;
 
         if (my >= ty && my <= ty + TAB_H) {
-            if (freqInput.isEmpty()) {
+            if (!active) {
                 for (int i = 0; i < 2; i++) {
                     if (mx >= px + 2 + i * (tw - 1) && mx <= px + 2 + (i + 1) * (tw - 1)) {
                         currentTab = i == 0 ? Tab.FREQUENCY : Tab.CHANNELS;
@@ -442,6 +481,7 @@ public class WalkieTalkieScreen extends Screen {
                 if (!freqInput.isEmpty()) {
                     Platform.getHelper().sendToServer(new PacketSetFrequency(freqInput, hand));
                     currentTab = Tab.CHAT;
+                    active = true;
                     playSfx(com.Theus452.walkietalkie.sound.ModSounds.WALKIE_TALKIE_CHANGE_CHANNEL.get(), 1.0f);
                 }
                 return true;
@@ -459,6 +499,7 @@ public class WalkieTalkieScreen extends Screen {
                 freqInput = "";
                 Platform.getHelper().sendToServer(new PacketSetFrequency("", hand));
                 currentTab = Tab.FREQUENCY;
+                active = false;
                 playSfx(com.Theus452.walkietalkie.sound.ModSounds.WALKIE_TALKIE_CHANGE_CHANNEL.get(), 1.0f);
                 return true;
             }
@@ -479,6 +520,7 @@ public class WalkieTalkieScreen extends Screen {
                     freqInput = info.frequency();
                     Platform.getHelper().sendToServer(new PacketSetFrequency(freqInput, hand));
                     currentTab = Tab.CHAT;
+                    active = true;
                     chatInput.setFocused(true);
                     playSfx(com.Theus452.walkietalkie.sound.ModSounds.WALKIE_TALKIE_CHANGE_CHANNEL.get(), 1.0f);
                     return true;
@@ -507,6 +549,7 @@ public class WalkieTalkieScreen extends Screen {
                 if (!freqInput.isEmpty()) {
                     Platform.getHelper().sendToServer(new PacketSetFrequency(freqInput, hand));
                     currentTab = Tab.CHAT;
+                    active = true;
                     playSfx(com.Theus452.walkietalkie.sound.ModSounds.WALKIE_TALKIE_CHANGE_CHANNEL.get(), 1.0f);
                 }
                 return true;
@@ -522,6 +565,36 @@ public class WalkieTalkieScreen extends Screen {
             }
         }
         return super.keyPressed(key, scan, mods);
+    }
+
+    @Override
+    public boolean mouseDragged(double mx, double my, int btn, double dragX, double dragY) {
+        if (isDraggingScrollbar && currentTab == Tab.CHAT) {
+            int py = panelY();
+            int contentY = py + HEADER_H + TAB_H;
+            int contentH = PANEL_H - HEADER_H - TAB_H - FOOTER_H;
+            int visibleLines = (contentH - 10) / 10;
+            int maxScroll = Math.max(0, cachedLines.size() - visibleLines);
+            if (maxScroll > 0) {
+                int sbY = contentY + 4;
+                int sbH = contentH - 8;
+                int thumbH = Math.max(10, (int) (((float) visibleLines / cachedLines.size()) * sbH));
+                float pct = (float)(my - sbY - thumbH / 2) / (sbH - thumbH);
+                pct = Mth.clamp(pct, 0f, 1f);
+                scrollOffset = maxScroll - (int)(pct * maxScroll);
+                return true;
+            }
+        }
+        return super.mouseDragged(mx, my, btn, dragX, dragY);
+    }
+
+    @Override
+    public boolean mouseReleased(double mx, double my, int btn) {
+        if (btn == 0 && isDraggingScrollbar) {
+            isDraggingScrollbar = false;
+            return true;
+        }
+        return super.mouseReleased(mx, my, btn);
     }
 
     @Override
