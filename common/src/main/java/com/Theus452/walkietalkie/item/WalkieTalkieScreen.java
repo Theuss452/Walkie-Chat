@@ -48,6 +48,8 @@ public class WalkieTalkieScreen extends Screen {
     private String myName = "";
     private boolean active = false;
     private boolean isDraggingScrollbar = false;
+    private int channelsScrollOffset = 0;
+    private boolean isDraggingChannelsScrollbar = false;
 
     private final List<FormattedCharSequence> cachedLines = new ArrayList<>();
     private final List<Boolean> cachedIsMine = new ArrayList<>();
@@ -271,8 +273,12 @@ public class WalkieTalkieScreen extends Screen {
         int rx = cx - rowW / 2;
         int rowY = contentY + 28;
 
-        for (int i = 0; i < Math.min(4, channels.size()); i++) {
-            PacketSyncChannels.ChannelInfo info = channels.get(i);
+        int maxVisible = 4;
+        int maxScroll = Math.max(0, channels.size() - maxVisible);
+        channelsScrollOffset = Mth.clamp(channelsScrollOffset, 0, maxScroll);
+
+        for (int i = 0; i < Math.min(maxVisible, channels.size() - channelsScrollOffset); i++) {
+            PacketSyncChannels.ChannelInfo info = channels.get(channelsScrollOffset + i);
             int ry = rowY + i * 20;
 
             boolean isCurrent = info.frequency().equals(freqInput);
@@ -294,6 +300,18 @@ public class WalkieTalkieScreen extends Screen {
             String activeDot = "§a⬤ ";
             int textW = font.width(activeDot + userText);
             g.drawString(font, activeDot + "§2" + userText, rx + rowW - textW - 6, ry + 4, 0xFFFFFFFF, false);
+        }
+
+        if (maxScroll > 0) {
+            int sbX = px + PANEL_W - 8;
+            int sbY = rowY;
+            int sbH = maxVisible * 20 - 4;
+            g.fill(sbX, sbY, sbX + 4, sbY + sbH, 0x44000000);
+            int thumbH = Math.max(10, (int) (((float) maxVisible / channels.size()) * sbH));
+            int thumbY = sbY + (int) (((float) channelsScrollOffset / maxScroll) * (sbH - thumbH));
+            boolean isHovered = mx >= sbX && mx <= sbX + 4 && my >= thumbY && my <= thumbY + thumbH;
+            int thumbColor = isHovered || isDraggingChannelsScrollbar ? 0xFF388540 : C_BORDER_GLOW;
+            g.fill(sbX, thumbY, sbX + 4, thumbY + thumbH, thumbColor);
         }
     }
 
@@ -507,21 +525,39 @@ public class WalkieTalkieScreen extends Screen {
 
         if (currentTab == Tab.CHANNELS && btn == 0) {
             List<PacketSyncChannels.ChannelInfo> channels = ChannelCache.get();
+            int maxVisible = 4;
+            int maxScroll = Math.max(0, channels.size() - maxVisible);
             int cx = px + PANEL_W / 2;
             int rowW = 180;
             int rowH = 16;
             int rx = cx - rowW / 2;
             int rowY = py + HEADER_H + TAB_H + 28;
 
-            for (int i = 0; i < Math.min(4, channels.size()); i++) {
+            if (maxScroll > 0) {
+                int sbX = px + PANEL_W - 8;
+                int sbY = rowY;
+                int sbH = maxVisible * 20 - 4;
+                int thumbH = Math.max(10, (int) (((float) maxVisible / channels.size()) * sbH));
+                int thumbY = sbY + (int) (((float) channelsScrollOffset / maxScroll) * (sbH - thumbH));
+                if (mx >= sbX && mx <= sbX + 4 && my >= sbY && my <= sbY + sbH) {
+                    isDraggingChannelsScrollbar = true;
+                    if (my < thumbY || my > thumbY + thumbH) {
+                        float pct = (float)(my - sbY - thumbH / 2) / (sbH - thumbH);
+                        pct = Mth.clamp(pct, 0f, 1f);
+                        channelsScrollOffset = (int)(pct * maxScroll);
+                    }
+                    return true;
+                }
+            }
+
+            for (int i = 0; i < Math.min(maxVisible, channels.size() - channelsScrollOffset); i++) {
                 int ry = rowY + i * 20;
                 if (mx >= rx && mx <= rx + rowW && my >= ry && my <= ry + rowH) {
-                    PacketSyncChannels.ChannelInfo info = channels.get(i);
+                    PacketSyncChannels.ChannelInfo info = channels.get(channelsScrollOffset + i);
                     freqInput = info.frequency();
                     Platform.getHelper().sendToServer(new PacketSetFrequency(freqInput, hand));
                     currentTab = Tab.CHAT;
                     active = true;
-                    chatInput.setFocused(true);
                     playSfx(com.Theus452.walkietalkie.sound.ModSounds.WALKIE_TALKIE_CHANGE_CHANNEL.get(), 1.0f);
                     return true;
                 }
@@ -584,15 +620,36 @@ public class WalkieTalkieScreen extends Screen {
                 scrollOffset = maxScroll - (int)(pct * maxScroll);
                 return true;
             }
+        } else if (isDraggingChannelsScrollbar && currentTab == Tab.CHANNELS) {
+            List<PacketSyncChannels.ChannelInfo> channels = ChannelCache.get();
+            int maxVisible = 4;
+            int maxScroll = Math.max(0, channels.size() - maxVisible);
+            if (maxScroll > 0) {
+                int py = panelY();
+                int rowY = py + HEADER_H + TAB_H + 28;
+                int sbY = rowY;
+                int sbH = maxVisible * 20 - 4;
+                int thumbH = Math.max(10, (int) (((float) maxVisible / channels.size()) * sbH));
+                float pct = (float)(my - sbY - thumbH / 2) / (sbH - thumbH);
+                pct = Mth.clamp(pct, 0f, 1f);
+                channelsScrollOffset = (int)(pct * maxScroll);
+                return true;
+            }
         }
         return super.mouseDragged(mx, my, btn, dragX, dragY);
     }
 
     @Override
     public boolean mouseReleased(double mx, double my, int btn) {
-        if (btn == 0 && isDraggingScrollbar) {
-            isDraggingScrollbar = false;
-            return true;
+        if (btn == 0) {
+            if (isDraggingScrollbar) {
+                isDraggingScrollbar = false;
+                return true;
+            }
+            if (isDraggingChannelsScrollbar) {
+                isDraggingChannelsScrollbar = false;
+                return true;
+            }
         }
         return super.mouseReleased(mx, my, btn);
     }
@@ -602,6 +659,11 @@ public class WalkieTalkieScreen extends Screen {
         if (currentTab == Tab.CHAT) {
             int visibleLines = ((PANEL_H - HEADER_H - TAB_H - FOOTER_H) - 10) / 10;
             scrollOffset = Mth.clamp(scrollOffset + (int) Math.signum(amount), 0, Math.max(0, cachedLines.size() - visibleLines));
+            return true;
+        } else if (currentTab == Tab.CHANNELS) {
+            List<PacketSyncChannels.ChannelInfo> channels = ChannelCache.get();
+            int maxScroll = Math.max(0, channels.size() - 4);
+            channelsScrollOffset = Mth.clamp(channelsScrollOffset - (int) Math.signum(amount), 0, maxScroll);
             return true;
         }
         return super.mouseScrolled(mouseX, mouseY, amount);
