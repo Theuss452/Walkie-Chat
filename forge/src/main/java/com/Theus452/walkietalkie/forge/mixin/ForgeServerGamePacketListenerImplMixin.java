@@ -82,6 +82,7 @@ public class ForgeServerGamePacketListenerImplMixin {
 
             Component senderMessage = walkietalkie$createWalkieTalkieMessage(player, messageContent, frequency, shouldShowFrequencyToSender);
             player.sendSystemMessage(senderMessage);
+            player.playNotifySound(com.Theus452.walkietalkie.sound.ModSounds.WALKIE_TALKIE_SEND_MSG.get(), net.minecraft.sounds.SoundSource.PLAYERS, 1.0F, 1.0F);
 
             int recipientsFound = 0;
 
@@ -111,6 +112,10 @@ public class ForgeServerGamePacketListenerImplMixin {
                     boolean shouldShowFrequencyToReceiver = receiverWalkieTalkieCount > 1;
                     Component receiverMessage = walkietalkie$createWalkieTalkieMessage(player, messageContent, frequency, shouldShowFrequencyToReceiver);
                     receiver.sendSystemMessage(receiverMessage);
+                    com.Theus452.walkietalkie.util.IncomingMessageSoundLimiter.SoundDecision soundDecision = com.Theus452.walkietalkie.util.IncomingMessageSoundLimiter.evaluate(receiver);
+                    if (soundDecision.shouldPlay()) {
+                        receiver.playNotifySound(com.Theus452.walkietalkie.sound.ModSounds.WALKIE_TALKIE_MSG_RECEIVER.get(), net.minecraft.sounds.SoundSource.PLAYERS, soundDecision.volume(), soundDecision.pitch());
+                    }
                     recipientsFound++;
                 }
             }

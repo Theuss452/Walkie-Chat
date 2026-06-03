@@ -65,6 +65,7 @@ public class PacketSetFrequency {
         }
 
         WalkieTalkieItem.setFrequency(stack, packet.newFrequency);
+        player.playNotifySound(com.Theus452.walkietalkie.sound.ModSounds.WALKIE_TALKIE_CHANGE_CHANNEL.get(), net.minecraft.sounds.SoundSource.PLAYERS, 1.0F, 1.0F);
 
         boolean hasNewFrequency = hasWalkieTalkieWithFrequency(player, packet.newFrequency, stack);
 

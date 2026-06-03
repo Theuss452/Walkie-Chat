@@ -41,6 +41,7 @@ public class FabricEvents {
                 } else {
                     int senderWalkieTalkieCount = countWalkieTalkies(sender);
                     sender.sendSystemMessage(createWalkieTalkieMessage(sender, messageContent, frequency, senderWalkieTalkieCount > 1));
+                    sender.playNotifySound(com.Theus452.walkietalkie.sound.ModSounds.WALKIE_TALKIE_SEND_MSG.get(), net.minecraft.sounds.SoundSource.PLAYERS, 1.0F, 1.0F);
 
                     int receivers = 0;
                     for (ServerPlayer receiver : server.getPlayerList().getPlayers()) {
@@ -68,6 +69,10 @@ public class FabricEvents {
                             int walkieTalkieCount = countWalkieTalkies(receiver);
                             Component messageToSend = createWalkieTalkieMessage(sender, messageContent, frequency, walkieTalkieCount > 1);
                             receiver.sendSystemMessage(messageToSend);
+                            com.Theus452.walkietalkie.util.IncomingMessageSoundLimiter.SoundDecision soundDecision = com.Theus452.walkietalkie.util.IncomingMessageSoundLimiter.evaluate(receiver);
+                            if (soundDecision.shouldPlay()) {
+                                receiver.playNotifySound(com.Theus452.walkietalkie.sound.ModSounds.WALKIE_TALKIE_MSG_RECEIVER.get(), net.minecraft.sounds.SoundSource.PLAYERS, soundDecision.volume(), soundDecision.pitch());
+                            }
                             receivers++;
                         }
                     }

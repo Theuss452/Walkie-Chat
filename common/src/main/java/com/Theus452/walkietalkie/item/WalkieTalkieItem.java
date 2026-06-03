@@ -43,8 +43,9 @@ public class WalkieTalkieItem extends Item {
         private static void openScreen(InteractionHand hand) {
 
             net.minecraft.client.Minecraft.getInstance().setScreen(new WalkieTalkieScreen(hand));
-            net.minecraft.client.resources.sounds.SimpleSoundInstance sound = net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(ModSounds.WALKIE_TALKIE_OPEN_MENU.get(), 1.0F);
-            net.minecraft.client.Minecraft.getInstance().getSoundManager().play(sound);
+            if (net.minecraft.client.Minecraft.getInstance().player != null) {
+                net.minecraft.client.Minecraft.getInstance().player.playSound(ModSounds.WALKIE_TALKIE_OPEN_MENU.get(), 0.6F, 1.0F);
+            }
         }
     }
 }

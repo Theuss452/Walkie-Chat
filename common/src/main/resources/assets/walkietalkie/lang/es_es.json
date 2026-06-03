@@ -2,12 +2,14 @@
   "item.walkietalkie.walkie_talkie": "Walkie-Talkie",
 
   "sounds.walkietalkie.walkie_talkie_open_menu": "Walkie Talkie Menu",
+  "sounds.walkietalkie.change_channel": "Cambio de canal del Walkie Talkie",
+  "sounds.walkietalkie.send_msg": "Mensaje enviado del Walkie Talkie",
+  "sounds.walkietalkie.msg_receiver": "Mensaje recibido del Walkie Talkie",
 
   "creativetab.walkietalkie_tab": "Walkie Talkie Mod",
-  "itemGroup.walkietalkie.walkietalkie_tab": "Walkie Talkie",
 
-  "message.walkietalkie.no_one_nearby": "No hay nadie cerca para escucharte. ¡Usa un Walkie-Talkie!",
-  "message.walkietalkie.define.frequency": "¡Sin frecuencia definida!",
+  "message.walkietalkie.no_one_nearby": "§7No hay nadie cerca para escucharte. ¡Usa un Walkie-Talkie!",
+  "message.walkietalkie.define.frequency": "§7¡Sin frecuencia definida!",
   "message.walkietalkie.frequency": "Frecuencia",
   "message.walkietalkie.save.frequency": "Guardar",
   "message.walkietalkie.title.screen": "Frecuencia del Walkie-Talkie",
@@ -16,6 +18,8 @@
   "message.walkietalkie.join.other": " %s entró al canal.§r",
   "message.walkietalkie.leave.other": "%s salió del canal.§r",
   "gui.walkietalkie.frequency.suggestion": "Ingrese un valor (1-1000)",
+  "tooltip.walkietalkie.frequency.chat": "§7Frecuencia: §e%s",
   "message.walkietalkie.no_one_on_frequency": "¡No hay nadie en esta frecuencia para ver tu mensaje!",
   "message.walkietalkie.lost_connection": "%s perdió el walkie-talkie y salió de la frecuencia"
+
 }
