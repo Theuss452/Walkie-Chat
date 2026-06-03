@@ -20,37 +20,9 @@ public abstract class MsgCommandMixin {
     @ModifyVariable(
             method = "sendMessage",
             at = @At("HEAD"),
-            argsOnly = true,
-            remap = false,
-            require = 0
+            argsOnly = true
     )
-    private static Collection<ServerPlayer> walkietalkie$filterTargetsNamed(Collection<ServerPlayer> targets, CommandSourceStack source) {
-        return walkietalkie$filterTargetsImpl(targets, source);
-    }
-
-    @ModifyVariable(
-            method = "m_246972_",
-            at = @At("HEAD"),
-            argsOnly = true,
-            remap = false,
-            require = 0
-    )
-    private static Collection<ServerPlayer> walkietalkie$filterTargetsSrg(Collection<ServerPlayer> targets, CommandSourceStack source) {
-        return walkietalkie$filterTargetsImpl(targets, source);
-    }
-
-    @ModifyVariable(
-            method = "method_13462",
-            at = @At("HEAD"),
-            argsOnly = true,
-            remap = false,
-            require = 0
-    )
-    private static Collection<ServerPlayer> walkietalkie$filterTargetsIntermediary(Collection<ServerPlayer> targets, CommandSourceStack source) {
-        return walkietalkie$filterTargetsImpl(targets, source);
-    }
-
-    private static Collection<ServerPlayer> walkietalkie$filterTargetsImpl(Collection<ServerPlayer> targets, CommandSourceStack source) {
+    private static Collection<ServerPlayer> walkietalkie$filterTargets(Collection<ServerPlayer> targets, CommandSourceStack source) {
         ServerPlayer sender = source.getPlayer();
         if (sender == null) {
             return targets;

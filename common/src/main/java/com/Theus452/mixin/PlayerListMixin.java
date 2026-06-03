@@ -29,37 +29,9 @@ public abstract class PlayerListMixin {
     @Inject(
             method = "broadcastChatMessage(Lnet/minecraft/network/chat/PlayerChatMessage;Lnet/minecraft/commands/CommandSourceStack;Lnet/minecraft/network/chat/ChatType$Bound;)V",
             at = @At("HEAD"),
-            cancellable = true,
-            require = 0,
-            remap = false
+            cancellable = true
     )
-    private void walkietalkie$applyProximityToCommandChatNamed(PlayerChatMessage message, CommandSourceStack sender, ChatType.Bound boundChatType, CallbackInfo ci) {
-        walkietalkie$applyProximityToCommandChatImpl(message, sender, boundChatType, ci);
-    }
-
-    @Inject(
-            method = "m_243063_",
-            at = @At("HEAD"),
-            cancellable = true,
-            require = 0,
-            remap = false
-    )
-    private void walkietalkie$applyProximityToCommandChatSrg(PlayerChatMessage message, CommandSourceStack sender, ChatType.Bound boundChatType, CallbackInfo ci) {
-        walkietalkie$applyProximityToCommandChatImpl(message, sender, boundChatType, ci);
-    }
-
-    @Inject(
-            method = "method_44166",
-            at = @At("HEAD"),
-            cancellable = true,
-            require = 0,
-            remap = false
-    )
-    private void walkietalkie$applyProximityToCommandChatIntermediary(PlayerChatMessage message, CommandSourceStack sender, ChatType.Bound boundChatType, CallbackInfo ci) {
-        walkietalkie$applyProximityToCommandChatImpl(message, sender, boundChatType, ci);
-    }
-
-    private void walkietalkie$applyProximityToCommandChatImpl(PlayerChatMessage message, CommandSourceStack sender, ChatType.Bound boundChatType, CallbackInfo ci) {
+    private void walkietalkie$applyProximityToCommandChat(PlayerChatMessage message, CommandSourceStack sender, ChatType.Bound boundChatType, CallbackInfo ci) {
         ServerPlayer senderPlayer = sender.getPlayer();
         if (senderPlayer == null) {
             return;
@@ -80,9 +52,9 @@ public abstract class PlayerListMixin {
                 continue;
             }
 
-            // Fallback for 1.19.2 sending the message directly
             boolean filtered = sender.shouldFilterMessageTo(recipient);
             recipient.sendChatMessage(outgoing, filtered, boundChatType);
+
             recipientsFound++;
         }
 

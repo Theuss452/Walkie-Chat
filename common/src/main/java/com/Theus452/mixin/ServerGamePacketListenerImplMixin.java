@@ -2,6 +2,8 @@ package com.Theus452.mixin;
 
 import com.Theus452.walkietalkie.item.WalkieTalkieItem;
 import com.Theus452.walkietalkie.platform.Platform;
+import com.Theus452.walkietalkie.sound.ModSounds;
+import com.Theus452.walkietalkie.util.IncomingMessageSoundLimiter;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -56,12 +58,13 @@ public class ServerGamePacketListenerImplMixin {
     @Inject(method = "handleChat", at = @At("HEAD"), cancellable = true)
     private void onHandleChat(ServerboundChatPacket packet, CallbackInfo ci) {
         String messageContent = packet.message();
-
-        SERVER_LOGGER.info("<{}> {}", player.getDisplayName().getString(), messageContent);
-
         final net.minecraft.server.MinecraftServer server = this.player.getServer();
         if (server == null) {
             return;
+        }
+
+        if (server.isDedicatedServer()) {
+            SERVER_LOGGER.info("<{}> {}", player.getDisplayName().getString(), messageContent);
         }
 
         ItemStack walkieStack = this.player.getMainHandItem();
@@ -82,6 +85,7 @@ public class ServerGamePacketListenerImplMixin {
 
             Component senderMessage = walkietalkie$createWalkieTalkieMessage(player, messageContent, frequency, shouldShowFrequencyToSender);
             player.sendSystemMessage(senderMessage);
+            player.playNotifySound(ModSounds.WALKIE_TALKIE_SEND_MSG.get(), net.minecraft.sounds.SoundSource.PLAYERS, 1.0F, 1.0F);
 
             int recipientsFound = 0;
 
@@ -108,6 +112,10 @@ public class ServerGamePacketListenerImplMixin {
                     boolean shouldShowFrequencyToReceiver = receiverWalkieTalkieCount > 1;
                     Component receiverMessage = walkietalkie$createWalkieTalkieMessage(player, messageContent, frequency, shouldShowFrequencyToReceiver);
                     receiver.sendSystemMessage(receiverMessage);
+                    IncomingMessageSoundLimiter.SoundDecision soundDecision = IncomingMessageSoundLimiter.evaluate(receiver);
+                    if (soundDecision.shouldPlay()) {
+                        receiver.playNotifySound(ModSounds.WALKIE_TALKIE_MSG_RECEIVER.get(), net.minecraft.sounds.SoundSource.PLAYERS, soundDecision.volume(), soundDecision.pitch());
+                    }
                     recipientsFound++;
                 }
             }
