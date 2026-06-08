@@ -2,50 +2,65 @@ package com.Theus452.walkietalkie.fabric.platform;
 
 import com.Theus452.walkietalkie.fabric.config.FabricModConfigs;
 import com.Theus452.walkietalkie.fabric.networking.FabricPacketHandler;
-import com.Theus452.walkietalkie.networking.packet.PacketSetBlockFrequency;
+import com.Theus452.walkietalkie.networking.packet.PacketChannelActionResult;
+import com.Theus452.walkietalkie.networking.packet.PacketCreateChannel;
+import com.Theus452.walkietalkie.networking.packet.PacketJoinChannel;
+import com.Theus452.walkietalkie.networking.packet.PacketPushChatMessage;
+import com.Theus452.walkietalkie.networking.packet.PacketRequestChannels;
 import com.Theus452.walkietalkie.networking.packet.PacketSetFrequency;
+import com.Theus452.walkietalkie.networking.packet.PacketSetBlockFrequency;
+import com.Theus452.walkietalkie.networking.packet.PacketSyncChannels;
 import com.Theus452.walkietalkie.platform.IPlatformHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
-import net.fabricmc.loader.api.FabricLoader;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.server.level.ServerPlayer;
 
 public class FabricPlatformHelper implements IPlatformHelper {
-
     @Override
     public void sendToServer(Object packet) {
-        if (packet instanceof PacketSetFrequency p) {
-            FriendlyByteBuf buf = PacketByteBufs.create();
-            p.toBytes(buf);
-            ClientPlayNetworking.send(FabricPacketHandler.SET_FREQUENCY_ID, buf);
-        } else if (packet instanceof PacketSetBlockFrequency p) {
-            FriendlyByteBuf buf = PacketByteBufs.create();
-            p.toBytes(buf);
-            ClientPlayNetworking.send(FabricPacketHandler.SET_BLOCK_FREQUENCY_ID, buf);
+        FriendlyByteBuf buffer = PacketByteBufs.create();
+        if (packet instanceof PacketSetFrequency value) {
+            value.toBytes(buffer);
+            ClientPlayNetworking.send(FabricPacketHandler.SET_FREQUENCY_ID, buffer);
+        } else if (packet instanceof PacketCreateChannel value) {
+            value.toBytes(buffer);
+            ClientPlayNetworking.send(FabricPacketHandler.CREATE_CHANNEL_ID, buffer);
+        } else if (packet instanceof PacketJoinChannel value) {
+            value.toBytes(buffer);
+            ClientPlayNetworking.send(FabricPacketHandler.JOIN_CHANNEL_ID, buffer);
+        } else if (packet instanceof PacketRequestChannels value) {
+            value.toBytes(buffer);
+            ClientPlayNetworking.send(FabricPacketHandler.REQUEST_CHANNELS_ID, buffer);
+        } else if (packet instanceof PacketSetBlockFrequency value) {
+            value.toBytes(buffer);
+            ClientPlayNetworking.send(FabricPacketHandler.SET_BLOCK_FREQUENCY_ID, buffer);
         }
     }
 
     @Override
-    public void sendToClient(Object packet, net.minecraft.server.level.ServerPlayer player) {
-        if (packet instanceof com.Theus452.walkietalkie.networking.packet.PacketPushChatMessage p) {
-            FriendlyByteBuf buf = PacketByteBufs.create();
-            p.toBytes(buf);
-            net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(player, FabricPacketHandler.PUSH_CHAT_MESSAGE_ID, buf);
-        } else if (packet instanceof com.Theus452.walkietalkie.networking.packet.PacketSyncChannels p) {
-            FriendlyByteBuf buf = PacketByteBufs.create();
-            p.toBytes(buf);
-            net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking.send(player, FabricPacketHandler.SYNC_CHANNELS_ID, buf);
+    public void sendToClient(Object packet, ServerPlayer player) {
+        FriendlyByteBuf buffer = PacketByteBufs.create();
+        if (packet instanceof PacketPushChatMessage value) {
+            value.toBytes(buffer);
+            ServerPlayNetworking.send(player, FabricPacketHandler.PUSH_CHAT_MESSAGE_ID, buffer);
+        } else if (packet instanceof PacketSyncChannels value) {
+            value.toBytes(buffer);
+            ServerPlayNetworking.send(player, FabricPacketHandler.SYNC_CHANNELS_ID, buffer);
+        } else if (packet instanceof PacketChannelActionResult value) {
+            value.toBytes(buffer);
+            ServerPlayNetworking.send(player, FabricPacketHandler.CHANNEL_ACTION_RESULT_ID, buffer);
         }
     }
 
     @Override
     public double getChatRange() {
-        
         return FabricModConfigs.getChatRange();
     }
 
     @Override
     public boolean isModLoaded(String modId) {
-        return FabricLoader.getInstance().isModLoaded(modId);
+        return net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded(modId);
     }
 }

@@ -1,9 +1,14 @@
 package com.Theus452.walkietalkie.fabric.client;
 
 import com.Theus452.walkietalkie.WalkieTalkieMod;
+import com.Theus452.walkietalkie.fabric.networking.FabricPacketHandler;
+import com.Theus452.walkietalkie.networking.packet.PacketChannelActionResult;
+import com.Theus452.walkietalkie.networking.packet.PacketPushChatMessage;
+import com.Theus452.walkietalkie.networking.packet.PacketSyncChannels;
 import com.Theus452.walkietalkie.proxy.ClientProxy;
 import com.Theus452.walkietalkie.proxy.Proxy;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.model.ModelLoadingRegistry;
 import net.minecraft.client.resources.model.ModelResourceLocation;
 import net.minecraft.resources.ResourceLocation;
@@ -24,14 +29,19 @@ public final class walkietalkieFabricClient implements ClientModInitializer {
             return null;
         });
 
-        net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.registerGlobalReceiver(com.Theus452.walkietalkie.fabric.networking.FabricPacketHandler.PUSH_CHAT_MESSAGE_ID, (client, handler, buf, responseSender) -> {
-            com.Theus452.walkietalkie.networking.packet.PacketPushChatMessage packet = new com.Theus452.walkietalkie.networking.packet.PacketPushChatMessage(buf);
-            client.execute(() -> com.Theus452.walkietalkie.networking.packet.PacketPushChatMessage.handle(packet));
+        ClientPlayNetworking.registerGlobalReceiver(FabricPacketHandler.PUSH_CHAT_MESSAGE_ID, (client, handler, buf, responseSender) -> {
+            PacketPushChatMessage packet = new PacketPushChatMessage(buf);
+            client.execute(() -> PacketPushChatMessage.handle(packet));
         });
 
-        net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.registerGlobalReceiver(com.Theus452.walkietalkie.fabric.networking.FabricPacketHandler.SYNC_CHANNELS_ID, (client, handler, buf, responseSender) -> {
-            com.Theus452.walkietalkie.networking.packet.PacketSyncChannels packet = new com.Theus452.walkietalkie.networking.packet.PacketSyncChannels(buf);
-            client.execute(() -> com.Theus452.walkietalkie.networking.packet.PacketSyncChannels.handle(packet));
+        ClientPlayNetworking.registerGlobalReceiver(FabricPacketHandler.SYNC_CHANNELS_ID, (client, handler, buf, responseSender) -> {
+            PacketSyncChannels packet = new PacketSyncChannels(buf);
+            client.execute(() -> PacketSyncChannels.handle(packet));
+        });
+
+        ClientPlayNetworking.registerGlobalReceiver(FabricPacketHandler.CHANNEL_ACTION_RESULT_ID, (client, handler, buf, responseSender) -> {
+            PacketChannelActionResult packet = new PacketChannelActionResult(buf);
+            client.execute(() -> PacketChannelActionResult.handle(packet));
         });
     }
 }

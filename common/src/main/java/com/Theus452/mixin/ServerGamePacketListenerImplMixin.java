@@ -2,15 +2,14 @@ package com.Theus452.mixin;
 
 import com.Theus452.walkietalkie.api.WalkieChatCallback;
 import com.Theus452.walkietalkie.block.WalkieTalkieBlockEntity;
-import com.Theus452.walkietalkie.compat.AttractToChatCompat;
+import com.Theus452.walkietalkie.channel.ChannelManager;
 import com.Theus452.walkietalkie.item.WalkieTalkieItem;
-import com.Theus452.walkietalkie.networking.WalkieNetworkHandler;
 import com.Theus452.walkietalkie.platform.Platform;
+import com.Theus452.walkietalkie.networking.WalkieNetworkHandler;
 import com.Theus452.walkietalkie.util.WalkieMessageHelper;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ServerboundChatPacket;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
@@ -33,30 +32,26 @@ public class ServerGamePacketListenerImplMixin {
         String content = packet.message();
         if (content.startsWith("/")) return;
 
-        if (AttractToChatCompat.isVocallyMuted(player)) {
-            player.displayClientMessage(Component.translatable("message.walkietalkie.vocal_muted"), true);
-            ci.cancel();
-            return;
-        }
-
-        MinecraftServer server = player.getServer();
-        if (server == null) {
-            ci.cancel();
-            return;
-        }
-
         ItemStack stack = player.getItemInHand(InteractionHand.MAIN_HAND);
         if (!(stack.getItem() instanceof WalkieTalkieItem)) {
             stack = player.getItemInHand(InteractionHand.OFF_HAND);
         }
 
+        boolean holdingActive = false;
+        String frequency = "";
+
         if (stack.getItem() instanceof WalkieTalkieItem) {
-            String frequency = WalkieTalkieItem.getFrequency(stack);
-            if (frequency.isEmpty()) {
-                player.sendSystemMessage(Component.translatable("message.walkietalkie.define.frequency"));
-            } else {
-                WalkieMessageHelper.broadcastMessage(server, player, frequency, content);
+            frequency = WalkieTalkieItem.getFrequency(stack);
+            holdingActive = !frequency.isEmpty();
+        }
+
+        if (holdingActive) {
+            if (!ChannelManager.canAccess(player, frequency)) {
+                player.sendSystemMessage(Component.translatable("gui.walkietalkie.error.private_access"));
+                ci.cancel();
+                return;
             }
+            WalkieMessageHelper.broadcastMessage(player.server, player, frequency, content);
             if (WalkieChatCallback.PROXIMITY_CHAT.hasListeners()) {
                 WalkieChatCallback.PROXIMITY_CHAT.invoke(new WalkieChatCallback.ProximityData(player, content, List.of(), 0));
             }
@@ -66,7 +61,7 @@ public class ServerGamePacketListenerImplMixin {
 
         WalkieTalkieBlockEntity nearbyWalkie = WalkieMessageHelper.findNearbyActiveBlock(player);
         if (nearbyWalkie != null) {
-            WalkieMessageHelper.broadcastMessage(server, player, nearbyWalkie.getFrequency(), content);
+            WalkieMessageHelper.broadcastMessage(player.server, player, nearbyWalkie.getFrequency(), content);
             if (WalkieChatCallback.PROXIMITY_CHAT.hasListeners()) {
                 WalkieChatCallback.PROXIMITY_CHAT.invoke(new WalkieChatCallback.ProximityData(player, content, List.of(), 0));
             }
@@ -74,8 +69,8 @@ public class ServerGamePacketListenerImplMixin {
             return;
         }
 
-        double range = AttractToChatCompat.getEffectiveProximityRange(content, Platform.getHelper().getChatRange());
-        List<ServerPlayer> players = server.getPlayerList().getPlayers();
+        double range = Platform.getHelper().getChatRange();
+        List<ServerPlayer> players = player.getServer().getPlayerList().getPlayers();
         Component formattedMessage = Component.translatable("chat.type.text", player.getDisplayName(), content);
 
         int recipients = 0;
@@ -120,23 +115,7 @@ public class ServerGamePacketListenerImplMixin {
 
         for (ServerPlayer receiver : players) {
             if (receiver == player) continue;
-            boolean receiverHasWalkie = false;
-            for (ItemStack s : receiver.getInventory().items) {
-                if (s.getItem() instanceof WalkieTalkieItem && freq.equals(WalkieTalkieItem.getFrequency(s))) {
-                    receiverHasWalkie = true;
-                    break;
-                }
-            }
-            if (!receiverHasWalkie) {
-                for (ItemStack s : receiver.getInventory().offhand) {
-                    if (s.getItem() instanceof WalkieTalkieItem && freq.equals(WalkieTalkieItem.getFrequency(s))) {
-                        receiverHasWalkie = true;
-                        break;
-                    }
-                }
-            }
-
-            if (receiverHasWalkie) {
+            if (ChannelManager.hasTunedWalkie(receiver, freq)) {
                 receiver.sendSystemMessage(chatMessage);
                 WalkieNetworkHandler.sendPushMessage(receiver, freq, player.getName().getString(), msg);
                 receivers.add(receiver);
