@@ -201,9 +201,11 @@ public final class ConnectionManager {
             String name = definition == null
                     ? Component.translatable("gui.walkietalkie.unnamed_channel", frequency).getString()
                     : definition.name();
+            String ownerName = definition == null ? "" : definition.ownerName();
             channels.add(new PacketSyncChannels.ChannelInfo(
                     frequency,
                     name,
+                    ownerName,
                     mayInspect ? players.size() : -1,
                     mayInspect ? players : List.of(),
                     passwordProtected,

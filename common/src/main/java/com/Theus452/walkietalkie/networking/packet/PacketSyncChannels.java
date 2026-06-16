@@ -10,6 +10,7 @@ public final class PacketSyncChannels {
     public record ChannelInfo(
             String frequency,
             String name,
+            String ownerName,
             int playerCount,
             List<String> players,
             boolean passwordProtected,
@@ -30,8 +31,9 @@ public final class PacketSyncChannels {
         int size = buf.readVarInt();
         List<ChannelInfo> list = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
-            String freq = buf.readUtf(10);
-            String name = buf.readUtf(24);
+            String freq = buf.readUtf(16);
+            String name = buf.readUtf(32);
+            String ownerName = buf.readUtf(32);
             int playerCount = buf.readVarInt();
             boolean passwordProtected = buf.readBoolean();
             boolean persistent = buf.readBoolean();
@@ -40,7 +42,7 @@ public final class PacketSyncChannels {
             for (int j = 0; j < pSize; j++) {
                 players.add(buf.readUtf(32));
             }
-            list.add(new ChannelInfo(freq, name, playerCount, players, passwordProtected, persistent));
+            list.add(new ChannelInfo(freq, name, ownerName, playerCount, players, passwordProtected, persistent));
         }
         this.channels = Collections.unmodifiableList(list);
     }
@@ -48,8 +50,9 @@ public final class PacketSyncChannels {
     public void toBytes(FriendlyByteBuf buf) {
         buf.writeVarInt(channels.size());
         for (ChannelInfo ch : channels) {
-            buf.writeUtf(ch.frequency(), 10);
-            buf.writeUtf(ch.name(), 24);
+            buf.writeUtf(ch.frequency(), 16);
+            buf.writeUtf(ch.name(), 32);
+            buf.writeUtf(ch.ownerName(), 32);
             buf.writeVarInt(ch.playerCount());
             buf.writeBoolean(ch.passwordProtected());
             buf.writeBoolean(ch.persistent());

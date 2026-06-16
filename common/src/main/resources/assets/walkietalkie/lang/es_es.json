@@ -55,7 +55,7 @@
   "gui.walkietalkie.join_first": "Entra a un canal primero",
   "gui.walkietalkie.no_messages": "Aún no hay mensajes",
   "gui.walkietalkie.error.frequency": "Usa una frecuencia entre 1 y 999.",
-  "gui.walkietalkie.error.name": "El nombre debe tener 3-24 caracteres válidos.",
+  "gui.walkietalkie.error.name": "El nombre debe tener de 1 a 16 caracteres.",
   "gui.walkietalkie.error.password_length": "La contraseña debe tener 4-32 caracteres.",
   "gui.walkietalkie.error.item": "El walkie-talkie ya no está en esa mano.",
   "gui.walkietalkie.error.frequency_used": "Esa frecuencia ya tiene un canal.",
@@ -68,5 +68,9 @@
   "gui.walkietalkie.error.form": "Completa los campos obligatorios.",
   "gui.walkietalkie.success.created": "Canal creado y conectado.",
   "gui.walkietalkie.success.joined": "Conectado al canal.",
-  "gui.walkietalkie.success.left": "Desconectado del canal."
+  "gui.walkietalkie.success.left": "Desconectado del canal.",
+  "gui.walkietalkie.popup.confirm_title": "¿Cambiar frecuencia?",
+  "gui.walkietalkie.popup.confirm_desc": "¿Deseas salir del canal actual?",
+  "gui.walkietalkie.popup.confirm": "Sí",
+  "gui.walkietalkie.popup.cancel": "No"
 }

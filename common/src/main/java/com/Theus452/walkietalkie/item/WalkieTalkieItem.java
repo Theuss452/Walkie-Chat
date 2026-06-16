@@ -8,6 +8,7 @@ import com.Theus452.walkietalkie.sound.ModSounds;
 import com.Theus452.walkietalkie.util.SafeNbt;
 import com.Theus452.walkietalkie.util.WalkieFrequency;
 import net.minecraft.core.BlockPos;
+import net.minecraft.ChatFormatting;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundSource;
@@ -24,6 +25,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.shapes.CollisionContext;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.UUID;
@@ -98,6 +100,19 @@ public class WalkieTalkieItem extends Item {
 
     public static void setFrequency(ItemStack stack, String frequency) {
         SafeNbt.putString(stack, FREQUENCY_KEY, WalkieFrequency.sanitize(frequency), WalkieFrequency.MAX_WIRE_LENGTH);
+    }
+
+    @Override
+    public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltipComponents, TooltipFlag isAdvanced) {
+        String frequency = getFrequency(stack);
+        if (frequency.isEmpty()) {
+            tooltipComponents.add(Component.literal("🔋 Status: ").withStyle(ChatFormatting.GOLD).append(Component.literal("OFF").withStyle(ChatFormatting.RED)));
+            tooltipComponents.add(Component.literal("📡 Frequency: --- MHz").withStyle(ChatFormatting.YELLOW));
+        } else {
+            tooltipComponents.add(Component.literal("🔋 Status: ").withStyle(ChatFormatting.GOLD).append(Component.literal("ON").withStyle(ChatFormatting.GREEN)));
+            tooltipComponents.add(Component.literal("📡 Frequency: " + frequency + " MHz").withStyle(ChatFormatting.YELLOW));
+        }
+        super.appendHoverText(stack, level, tooltipComponents, isAdvanced);
     }
 
     public static String getFrequency(ItemStack stack) {

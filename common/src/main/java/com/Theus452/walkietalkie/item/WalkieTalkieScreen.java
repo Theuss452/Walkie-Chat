@@ -85,6 +85,8 @@ public final class WalkieTalkieScreen extends Screen {
     private int chatScrollOffset;
     private int lastMessageCount;
     private PacketSyncChannels.ChannelInfo selectedChannel;
+    private boolean showConfirmPopup = false;
+    private Runnable onConfirmAction = null;
 
     public WalkieTalkieScreen(InteractionHand hand) {
         super(Component.translatable("gui.walkietalkie.title"));
@@ -117,12 +119,12 @@ public final class WalkieTalkieScreen extends Screen {
             }
         }
 
-        quickFrequencyInput = createEditBox(quickInputRect(px, contentY), 3, previousQuickFrequency, "gui.walkietalkie.frequency_short");
+        quickFrequencyInput = createEditBox(quickInputRect(px, contentY), 3, previousQuickFrequency, "Freq.");
         quickFrequencyInput.setFilter(this::isNumericInput);
         joinPasswordInput = createPasswordBox(joinPasswordRect(px, contentY), previousJoinPassword);
-        channelFrequencyInput = createEditBox(createFrequencyRect(px, contentY), 3, previousFrequency, "gui.walkietalkie.frequency_short");
+        channelFrequencyInput = createEditBox(createFrequencyRect(px, contentY), 3, previousFrequency, "Freq.");
         channelFrequencyInput.setFilter(this::isNumericInput);
-        channelNameInput = createEditBox(createNameRect(px, contentY), 24, previousName, "gui.walkietalkie.channel_name_hint");
+        channelNameInput = createEditBox(createNameRect(px, contentY), 16, previousName, "gui.walkietalkie.channel_name_hint");
         channelPasswordInput = createPasswordBox(createPasswordRect(px, contentY), previousPassword);
         chatInput = createEditBox(chatInputRect(px, py), 100, previousChat, "gui.walkietalkie.chat_hint");
 
@@ -190,6 +192,9 @@ public final class WalkieTalkieScreen extends Screen {
         }
         super.render(graphics, mouseX, mouseY, partialTick);
         drawStatusBar(graphics, px, py);
+        if (showConfirmPopup) {
+            drawConfirmPopup(graphics, px, py, mouseX, mouseY);
+        }
     }
 
     private void drawPanel(GuiGraphics graphics, int px, int py) {
@@ -226,20 +231,27 @@ public final class WalkieTalkieScreen extends Screen {
                 font,
                 String.format("%02d:%02d", time.getHour(), time.getMinute()),
                 px + PANEL_W - 39,
-                hy + 16,
+                hy + 6,
                 C_TEXT_DIM,
                 false
         );
+        // Draw signal icon below time
+        int signalX = px + PANEL_W - 39 + (font.width("00:00") / 2) - 8;
+        int signalY = hy + 18;
+        graphics.fill(signalX, signalY + 6, signalX + 3, signalY + 8, C_SUCCESS);
+        graphics.fill(signalX + 4, signalY + 4, signalX + 7, signalY + 8, C_SUCCESS);
+        graphics.fill(signalX + 8, signalY + 2, signalX + 11, signalY + 8, C_SUCCESS);
+        graphics.fill(signalX + 12, signalY, signalX + 15, signalY + 8, C_SUCCESS);
     }
 
     private void drawTabs(GuiGraphics graphics, int px, int py, int mouseX, int mouseY) {
-        Tab[] tabs = active ? new Tab[]{Tab.CHAT, Tab.INFO} : new Tab[]{Tab.CREATE, Tab.CHANNELS};
+        Tab[] tabs = active ? new Tab[]{Tab.CHAT, Tab.INFO, Tab.CHANNELS} : new Tab[]{Tab.CREATE, Tab.CHANNELS};
         String[] keys = active
-                ? new String[]{"gui.walkietalkie.tab.chat", "gui.walkietalkie.tab.info"}
+                ? new String[]{"gui.walkietalkie.tab.chat", "gui.walkietalkie.tab.info", "gui.walkietalkie.tab.channels"}
                 : new String[]{"gui.walkietalkie.tab.create", "gui.walkietalkie.tab.channels"};
         int tabY = py + HEADER_H;
-        int tabWidth = (PANEL_W - 4) / 2;
-        for (int i = 0; i < 2; i++) {
+        int tabWidth = (PANEL_W - 4) / tabs.length;
+        for (int i = 0; i < tabs.length; i++) {
             Rect rect = new Rect(px + 2 + i * tabWidth, tabY, tabWidth, TAB_H);
             boolean selected = currentTab == tabs[i];
             boolean hovered = rect.contains(mouseX, mouseY);
@@ -302,6 +314,8 @@ public final class WalkieTalkieScreen extends Screen {
                 );
                 if (info.passwordProtected()) {
                     drawLock(graphics, lockX, rowRect.y() + 5);
+                } else {
+                    drawPublicIcon(graphics, lockX, rowRect.y() + 5);
                 }
             }
         }
@@ -434,7 +448,6 @@ public final class WalkieTalkieScreen extends Screen {
         Rect createButton = createButtonRect(px, contentY);
         boolean enabled = pendingAction == null
                 && !channelFrequencyInput.getValue().isBlank()
-                && channelNameInput.getValue().trim().length() >= 3
                 && (!privateChannel || channelPasswordInput.getValue().length() >= 4);
         drawButton(
                 graphics,
@@ -457,8 +470,8 @@ public final class WalkieTalkieScreen extends Screen {
     private void drawInfoTab(GuiGraphics graphics, int px, int contentY, int mouseX, int mouseY) {
         PacketSyncChannels.ChannelInfo info = findChannel(currentFrequency);
         String name = info == null ? currentFrequency + " MHz" : info.name();
-        graphics.drawCenteredString(font, font.plainSubstrByWidth(name, 230), px + PANEL_W / 2, contentY + 7, C_TEXT);
-        graphics.drawCenteredString(font, currentFrequency + " MHz", px + PANEL_W / 2, contentY + 19, C_TEXT_DIM);
+        graphics.drawCenteredString(font, font.plainSubstrByWidth("Name: " + name, 230), px + PANEL_W / 2, contentY + 7, C_TEXT);
+        graphics.drawCenteredString(font, "CH: " + currentFrequency, px + PANEL_W / 2, contentY + 19, C_TEXT_DIM);
         Rect membersBox = infoMembersRect(px, contentY);
         graphics.fill(membersBox.x(), membersBox.y(), membersBox.right(), membersBox.bottom(), C_DEEP);
         drawBorder(graphics, membersBox, C_BORDER);
@@ -468,9 +481,15 @@ public final class WalkieTalkieScreen extends Screen {
             players = List.of(myName);
         }
         for (int i = 0; i < Math.min(4, players.size()); i++) {
+            String memberName = players.get(i);
+            boolean isOwner = info != null && memberName.equals(info.ownerName());
+            Component memberText = isOwner
+                    ? Component.literal(memberName).append(Component.literal(" [Owner]").withStyle(net.minecraft.ChatFormatting.GOLD))
+                    : Component.literal(memberName);
+            
             graphics.drawString(
                     font,
-                    font.plainSubstrByWidth(players.get(i), membersBox.width() - 20),
+                    font.plainSubstrByWidth(memberText.getString(), membersBox.width() - 20),
                     membersBox.x() + 11,
                     membersBox.y() + 18 + i * 9,
                     C_TEXT,
@@ -594,6 +613,47 @@ public final class WalkieTalkieScreen extends Screen {
         graphics.fill(x + 3, y + 5, x + 5, y + 7, C_DEEP);
     }
 
+    private void drawPublicIcon(GuiGraphics graphics, int x, int y) {
+        graphics.fill(x + 2, y, x + 6, y + 1, C_SUCCESS);
+        graphics.fill(x + 1, y + 1, x + 2, y + 7, C_SUCCESS);
+        graphics.fill(x + 6, y + 1, x + 7, y + 7, C_SUCCESS);
+        graphics.fill(x + 2, y + 7, x + 6, y + 8, C_SUCCESS);
+        graphics.fill(x + 3, y + 3, x + 5, y + 5, C_SUCCESS);
+    }
+
+    private void drawConfirmPopup(GuiGraphics graphics, int px, int py, int mouseX, int mouseY) {
+        graphics.pose().pushPose();
+        graphics.pose().translate(0, 0, 300.0F);
+        int pw = 180;
+        int ph = 70;
+        int x = px + (PANEL_W - pw) / 2;
+        int y = py + (PANEL_H - ph) / 2;
+        graphics.fill(px, py, px + PANEL_W, py + PANEL_H, 0xAA000000);
+        graphics.fill(x, y, x + pw, y + ph, C_BG);
+        drawBorder(graphics, new Rect(x, y, pw, ph), C_BORDER);
+        graphics.drawCenteredString(font, Component.translatable("gui.walkietalkie.popup.confirm_title"), x + pw / 2, y + 12, C_TEXT);
+        graphics.drawCenteredString(font, Component.translatable("gui.walkietalkie.popup.confirm_desc"), x + pw / 2, y + 24, C_TEXT_DIM);
+        Rect confirmBtn = confirmButtonRect(x, y);
+        Rect cancelBtn = cancelButtonRect(x, y);
+        boolean confirmHovered = confirmBtn.contains(mouseX, mouseY);
+        boolean cancelHovered = cancelBtn.contains(mouseX, mouseY);
+        graphics.fill(confirmBtn.x(), confirmBtn.y(), confirmBtn.right(), confirmBtn.bottom(), confirmHovered ? 0xFF18301C : C_PANEL);
+        drawBorder(graphics, confirmBtn, confirmHovered ? C_ACCENT : C_BORDER);
+        graphics.drawCenteredString(font, Component.translatable("gui.walkietalkie.popup.confirm"), confirmBtn.x() + confirmBtn.width() / 2, confirmBtn.y() + 4, confirmHovered ? C_TEXT : C_TEXT_DIM);
+        graphics.fill(cancelBtn.x(), cancelBtn.y(), cancelBtn.right(), cancelBtn.bottom(), cancelHovered ? 0xFF3D1313 : C_PANEL);
+        drawBorder(graphics, cancelBtn, cancelHovered ? 0xFFE04444 : C_BORDER);
+        graphics.drawCenteredString(font, Component.translatable("gui.walkietalkie.popup.cancel"), cancelBtn.x() + cancelBtn.width() / 2, cancelBtn.y() + 4, cancelHovered ? C_TEXT : C_TEXT_DIM);
+        graphics.pose().popPose();
+    }
+
+    private Rect confirmButtonRect(int popupX, int popupY) {
+        return new Rect(popupX + 15, popupY + 44, 70, 16);
+    }
+
+    private Rect cancelButtonRect(int popupX, int popupY) {
+        return new Rect(popupX + 95, popupY + 44, 70, 16);
+    }
+
     private void drawInputFrame(GuiGraphics graphics, EditBox input) {
         if (!input.visible) {
             return;
@@ -662,6 +722,32 @@ public final class WalkieTalkieScreen extends Screen {
         int px = panelX();
         int py = panelY();
         int contentY = contentY();
+        if (showConfirmPopup && button == 0) {
+            int pw = 180;
+            int ph = 70;
+            int x = px + (PANEL_W - pw) / 2;
+            int y = py + (PANEL_H - ph) / 2;
+            Rect confirmBtn = confirmButtonRect(x, y);
+            Rect cancelBtn = cancelButtonRect(x, y);
+            if (confirmBtn.contains(mouseX, mouseY)) {
+                showConfirmPopup = false;
+                playSfx(ModSounds.WALKIE_TALKIE_BUTTON_CLICK.get(), 1.0F);
+                if (onConfirmAction != null) {
+                    onConfirmAction.run();
+                    onConfirmAction = null;
+                }
+                updateWidgetVisibility();
+                return true;
+            }
+            if (cancelBtn.contains(mouseX, mouseY)) {
+                showConfirmPopup = false;
+                onConfirmAction = null;
+                playSfx(ModSounds.WALKIE_TALKIE_BUTTON_CLICK.get(), 1.0F);
+                updateWidgetVisibility();
+                return true;
+            }
+            return true;
+        }
         if (button == 0 && handleTabClick(mouseX, mouseY, px, py)) {
             return true;
         }
@@ -711,7 +797,6 @@ public final class WalkieTalkieScreen extends Screen {
             }
             boolean enabled = pendingAction == null
                     && !channelFrequencyInput.getValue().isBlank()
-                    && channelNameInput.getValue().trim().length() >= 3
                     && (!privateChannel || channelPasswordInput.getValue().length() >= 4);
             if (enabled && createButtonRect(px, contentY).contains(mouseX, mouseY)) {
                 submitCreateChannel();
@@ -731,25 +816,28 @@ public final class WalkieTalkieScreen extends Screen {
     }
 
     private boolean handleTabClick(double mouseX, double mouseY, int px, int py) {
-        Rect tabs = new Rect(px + 2, py + HEADER_H, PANEL_W - 4, TAB_H);
-        if (!tabs.contains(mouseX, mouseY)) {
+        Rect tabsRect = new Rect(px + 2, py + HEADER_H, PANEL_W - 4, TAB_H);
+        if (!tabsRect.contains(mouseX, mouseY)) {
             return false;
         }
-        int index = mouseX < px + PANEL_W / 2 ? 0 : 1;
-        currentTab = active
-                ? index == 0 ? Tab.CHAT : Tab.INFO
-                : index == 0 ? Tab.CREATE : Tab.CHANNELS;
-        playSfx(ModSounds.WALKIE_TALKIE_BUTTON_CLICK.get(), 1.0F);
-        updateWidgetVisibility();
-        focusInput(switch (currentTab) {
-            case CREATE -> channelFrequencyInput;
-            case CHANNELS -> selectedChannel != null && selectedChannel.passwordProtected()
-                    ? joinPasswordInput
-                    : quickFrequencyInput;
-            case CHAT -> chatInput;
-            case INFO -> null;
-        });
-        return true;
+        Tab[] tabs = active ? new Tab[]{Tab.CHAT, Tab.INFO, Tab.CHANNELS} : new Tab[]{Tab.CREATE, Tab.CHANNELS};
+        int tabWidth = (PANEL_W - 4) / tabs.length;
+        int index = (int)((mouseX - (px + 2)) / tabWidth);
+        if (index >= 0 && index < tabs.length) {
+            currentTab = tabs[index];
+            playSfx(ModSounds.WALKIE_TALKIE_BUTTON_CLICK.get(), 1.0F);
+            updateWidgetVisibility();
+            focusInput(switch (currentTab) {
+                case CREATE -> channelFrequencyInput;
+                case CHANNELS -> selectedChannel != null && selectedChannel.passwordProtected()
+                        ? joinPasswordInput
+                        : quickFrequencyInput;
+                case CHAT -> chatInput;
+                case INFO -> null;
+            });
+            return true;
+        }
+        return false;
     }
 
     @Override
@@ -854,6 +942,16 @@ public final class WalkieTalkieScreen extends Screen {
             showStatus("gui.walkietalkie.error.password_required", false);
             return;
         }
+        if (active && !frequency.equals(currentFrequency)) {
+            showConfirmPopup = true;
+            onConfirmAction = () -> performJoinQuickFrequency(frequency);
+            updateWidgetVisibility();
+            return;
+        }
+        performJoinQuickFrequency(frequency);
+    }
+
+    private void performJoinQuickFrequency(String frequency) {
         long requestId = beginAction(ChannelActionType.JOIN);
         Platform.getHelper().sendToServer(new PacketJoinChannel(frequency, "", hand, requestId));
         playSfx(ModSounds.WALKIE_TALKIE_CHANGE_CHANNEL.get(), 1.0F);
@@ -869,6 +967,16 @@ public final class WalkieTalkieScreen extends Screen {
             focusInput(joinPasswordInput);
             return;
         }
+        if (active && !selectedChannel.frequency().equals(currentFrequency)) {
+            showConfirmPopup = true;
+            onConfirmAction = () -> performJoinSelectedChannel(password);
+            updateWidgetVisibility();
+            return;
+        }
+        performJoinSelectedChannel(password);
+    }
+
+    private void performJoinSelectedChannel(String password) {
         long requestId = beginAction(ChannelActionType.JOIN);
         Platform.getHelper().sendToServer(
                 new PacketJoinChannel(selectedChannel.frequency(), password, hand, requestId)
@@ -882,8 +990,12 @@ public final class WalkieTalkieScreen extends Screen {
         }
         String frequency = normalizeFrequency(channelFrequencyInput.getValue());
         String name = channelNameInput.getValue().trim();
+        if (name.length() < 1) {
+            showStatus("gui.walkietalkie.error.name", false);
+            return;
+        }
         String password = channelPasswordInput.getValue();
-        if (frequency.isEmpty() || name.length() < 3 || privateChannel && password.length() < 4) {
+        if (frequency.isEmpty() || privateChannel && password.length() < 4) {
             showStatus("gui.walkietalkie.error.form", false);
             return;
         }
@@ -1010,14 +1122,15 @@ public final class WalkieTalkieScreen extends Screen {
         if (quickFrequencyInput == null) {
             return;
         }
-        boolean channels = !active && currentTab == Tab.CHANNELS;
-        boolean create = !active && currentTab == Tab.CREATE;
+        boolean showWidgets = !showConfirmPopup;
+        boolean channels = showWidgets && currentTab == Tab.CHANNELS;
+        boolean create = showWidgets && !active && currentTab == Tab.CREATE;
         quickFrequencyInput.visible = channels;
         joinPasswordInput.visible = channels && selectedChannel != null && selectedChannel.passwordProtected();
         channelFrequencyInput.visible = create;
         channelNameInput.visible = create;
         channelPasswordInput.visible = create && privateChannel;
-        chatInput.visible = active && currentTab == Tab.CHAT;
+        chatInput.visible = showWidgets && active && currentTab == Tab.CHAT;
     }
 
     private void rebindSelectedChannel(List<PacketSyncChannels.ChannelInfo> channels) {
@@ -1152,11 +1265,11 @@ public final class WalkieTalkieScreen extends Screen {
     }
 
     private Rect quickInputRect(int px, int contentY) {
-        return new Rect(px + 8, contentY + 111, 52, 14);
+        return new Rect(px + 10, contentY + 111, 52, 14);
     }
 
     private Rect quickButtonRect(int px, int contentY) {
-        return new Rect(px + 66, contentY + 109, 78, 18);
+        return new Rect(px + 68, contentY + 109, 78, 18);
     }
 
     private Rect createFrequencyRect(int px, int contentY) {
