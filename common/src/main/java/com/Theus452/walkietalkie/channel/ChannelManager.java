@@ -13,16 +13,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-
 public final class ChannelManager {
-    private static final Map<UUID, Set<String>> PRIVATE_ACCESS = new HashMap<>();
-    private static MinecraftServer activeServer;
 
     private ChannelManager() {
     }
@@ -59,6 +50,12 @@ public final class ChannelManager {
         if (registry.getChannel(frequency) != null) {
             sendResult(player, false, "", "gui.walkietalkie.error.frequency_used", ChannelActionType.CREATE, requestId);
             return;
+        }
+        for (ChannelRegistry.ChannelDefinition definition : registry.getChannels()) {
+            if (definition.name().equalsIgnoreCase(name)) {
+                sendResult(player, false, "", "gui.walkietalkie.error.name_used", ChannelActionType.CREATE, requestId);
+                return;
+            }
         }
         ChannelRegistry.ChannelDefinition definition = registry.create(
                 frequency,
@@ -142,7 +139,6 @@ public final class ChannelManager {
         if (frequency == null || frequency.isEmpty()) {
             return false;
         }
-        ensureServer(player.server);
         ChannelRegistry.ChannelDefinition definition = ChannelRegistry.get(player.server).getChannel(frequency);
         if (definition == null) {
             return false;
@@ -168,23 +164,11 @@ public final class ChannelManager {
     }
 
     public static void revokeAccess(ServerPlayer player, String frequency) {
-        ensureServer(player.server);
-        Set<String> frequencies = PRIVATE_ACCESS.get(player.getUUID());
-        if (frequencies == null) {
-            return;
-        }
-        frequencies.remove(frequency);
-        if (frequencies.isEmpty()) {
-            PRIVATE_ACCESS.remove(player.getUUID());
-        }
+        ChannelRegistry.get(player.server).revokeAccess(player.getUUID(), frequency);
     }
 
     public static void revokeFrequencyAccess(MinecraftServer server, String frequency) {
-        ensureServer(server);
-        for (Set<String> frequencies : PRIVATE_ACCESS.values()) {
-            frequencies.remove(frequency);
-        }
-        PRIVATE_ACCESS.entrySet().removeIf(entry -> entry.getValue().isEmpty());
+        ChannelRegistry.get(server).revokeFrequencyAccess(frequency);
     }
 
     public static void sanitizePlayerWalkies(ServerPlayer player) {
@@ -201,14 +185,6 @@ public final class ChannelManager {
     }
 
     public static void cleanup(MinecraftServer server) {
-        ensureServer(server);
-        Iterator<UUID> iterator = PRIVATE_ACCESS.keySet().iterator();
-        while (iterator.hasNext()) {
-            UUID playerId = iterator.next();
-            if (server.getPlayerList().getPlayer(playerId) == null) {
-                iterator.remove();
-            }
-        }
     }
 
     public static boolean isValidFrequency(String frequency) {
@@ -242,7 +218,7 @@ public final class ChannelManager {
     }
 
     private static boolean isValidPassword(String password) {
-        return password != null && password.length() >= 4 && password.length() <= 32;
+        return password != null && password.length() >= 4 && password.length() <= 15;
     }
 
     private static String normalizeFrequency(String frequency) {
@@ -265,25 +241,17 @@ public final class ChannelManager {
     }
 
     private static void grantAccess(ServerPlayer player, String frequency) {
-        ensureServer(player.server);
-        PRIVATE_ACCESS.computeIfAbsent(player.getUUID(), key -> new HashSet<>()).add(frequency);
+        ChannelRegistry.get(player.server).grantAccess(player.getUUID(), frequency);
     }
 
     private static boolean hasAccess(ServerPlayer player, String frequency) {
-        ensureServer(player.server);
-        return PRIVATE_ACCESS.getOrDefault(player.getUUID(), Set.of()).contains(frequency);
-    }
-
-    private static void ensureServer(MinecraftServer server) {
-        if (activeServer != server) {
-            PRIVATE_ACCESS.clear();
-            activeServer = server;
-        }
+        return ChannelRegistry.get(player.server).hasAccess(player.getUUID(), frequency);
     }
 
     private static void leaveChannel(ServerPlayer player, String frequency) {
         clearFrequencyFromPlayer(player, frequency);
         revokeAccess(player, frequency);
+        ChannelRegistry.get(player.server).removeMember(frequency, player.getUUID(), player.server);
         ConnectionManager.cancelDisconnect(player, frequency);
         Component leaveMessage = Component.literal("[Walkie-Talkie] ").withStyle(ChatFormatting.GREEN)
                 .append(Component.translatable("message.walkietalkie.leave.other", player.getDisplayName())
@@ -310,6 +278,7 @@ public final class ChannelManager {
         if (!oldFrequency.isEmpty() && !keepsOldFrequency) {
             ConnectionManager.cancelDisconnect(player, oldFrequency);
             revokeAccess(player, oldFrequency);
+            ChannelRegistry.get(player.server).removeMember(oldFrequency, player.getUUID(), player.server);
             Component leaveMessage = Component.literal("[Walkie-Talkie] ").withStyle(ChatFormatting.GREEN)
                     .append(Component.translatable("message.walkietalkie.leave.other", player.getDisplayName())
                             .withStyle(ChatFormatting.YELLOW));
@@ -322,6 +291,9 @@ public final class ChannelManager {
         WalkieTalkieItem.setFrequency(stack, frequency);
         player.getInventory().setChanged();
         player.playNotifySound(ModSounds.WALKIE_TALKIE_CHANGE_CHANNEL.get(), SoundSource.PLAYERS, 1.0F, 1.0F);
+        if (!frequency.isEmpty()) {
+            ChannelRegistry.get(player.server).addMember(frequency, player.getUUID(), player.getDisplayName().getString(), player.server);
+        }
         if (!oldFrequency.isEmpty() && !keepsOldFrequency) {
             ConnectionManager.removeEmptyChannels(player.server);
         }
@@ -404,5 +376,51 @@ public final class ChannelManager {
                 actionType,
                 requestId
         );
+    }
+
+    public static void kickPlayerFromFrequency(ServerPlayer kicker, String frequency, String targetPlayerName) {
+        ChannelRegistry registry = ChannelRegistry.get(kicker.server);
+        ChannelRegistry.ChannelDefinition definition = registry.getChannel(frequency);
+        if (definition == null) {
+            return;
+        }
+        if (!definition.owner().equals(kicker.getUUID())) {
+            kicker.sendSystemMessage(Component.translatable("gui.walkietalkie.error.kick_denied").withStyle(ChatFormatting.RED));
+            return;
+        }
+        ServerPlayer target = kicker.server.getPlayerList().getPlayerByName(targetPlayerName);
+        if (target == null) {
+            return;
+        }
+        boolean changed = clearFrequencyFromPlayer(target, frequency);
+        registry.revokeAccess(target.getUUID(), frequency);
+        ConnectionManager.cancelDisconnect(target, frequency);
+        registry.removeMember(frequency, target.getUUID(), kicker.server);
+        if (changed) {
+            target.sendSystemMessage(
+                    Component.translatable("message.walkietalkie.kicked_from_channel", frequency)
+                            .withStyle(ChatFormatting.RED)
+            );
+            target.playNotifySound(ModSounds.WALKIE_TALKIE_CHANGE_CHANNEL.get(), SoundSource.PLAYERS, 1.0F, 1.0F);
+        }
+    }
+
+    public static void renameChannel(MinecraftServer server, ServerPlayer player, String frequency, String newName) {
+        ChannelRegistry registry = ChannelRegistry.get(server);
+        ChannelRegistry.ChannelDefinition definition = registry.getChannel(frequency);
+        if (definition == null) {
+            return;
+        }
+        if (!definition.owner().equals(player.getUUID())) {
+            player.sendSystemMessage(Component.translatable("gui.walkietalkie.error.rename_denied").withStyle(ChatFormatting.RED));
+            return;
+        }
+        if (newName.isEmpty() || newName.length() > 16) {
+            player.sendSystemMessage(Component.translatable("gui.walkietalkie.error.name").withStyle(ChatFormatting.RED));
+            return;
+        }
+        registry.renameChannel(frequency, newName);
+        player.sendSystemMessage(Component.translatable("gui.walkietalkie.settings.rename_success").withStyle(ChatFormatting.GREEN));
+        ConnectionManager.syncActiveChannels(server);
     }
 }

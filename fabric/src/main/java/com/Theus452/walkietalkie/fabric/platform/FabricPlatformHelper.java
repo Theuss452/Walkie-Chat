@@ -8,8 +8,10 @@ import com.Theus452.walkietalkie.networking.packet.PacketJoinChannel;
 import com.Theus452.walkietalkie.networking.packet.PacketPushChatMessage;
 import com.Theus452.walkietalkie.networking.packet.PacketRequestChannels;
 import com.Theus452.walkietalkie.networking.packet.PacketSetFrequency;
-import com.Theus452.walkietalkie.networking.packet.PacketSetBlockFrequency;
 import com.Theus452.walkietalkie.networking.packet.PacketSyncChannels;
+import com.Theus452.walkietalkie.networking.packet.PacketKickPlayer;
+import com.Theus452.walkietalkie.networking.packet.PacketRenameChannel;
+import com.Theus452.walkietalkie.networking.packet.PacketSetBlockFrequency;
 import com.Theus452.walkietalkie.platform.IPlatformHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
@@ -33,6 +35,12 @@ public class FabricPlatformHelper implements IPlatformHelper {
         } else if (packet instanceof PacketRequestChannels value) {
             value.toBytes(buffer);
             ClientPlayNetworking.send(FabricPacketHandler.REQUEST_CHANNELS_ID, buffer);
+        } else if (packet instanceof PacketKickPlayer value) {
+            value.toBytes(buffer);
+            ClientPlayNetworking.send(FabricPacketHandler.KICK_PLAYER_ID, buffer);
+        } else if (packet instanceof PacketRenameChannel value) {
+            value.toBytes(buffer);
+            ClientPlayNetworking.send(FabricPacketHandler.RENAME_CHANNEL_ID, buffer);
         } else if (packet instanceof PacketSetBlockFrequency value) {
             value.toBytes(buffer);
             ClientPlayNetworking.send(FabricPacketHandler.SET_BLOCK_FREQUENCY_ID, buffer);

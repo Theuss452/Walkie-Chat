@@ -15,9 +15,13 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import com.Theus452.walkietalkie.util.ConnectionManager;
 
 public final class ChannelRegistry extends SavedData {
     private static final Logger LOGGER = LoggerFactory.getLogger("WalkieChat-Channels");
@@ -45,7 +49,7 @@ public final class ChannelRegistry extends SavedData {
                 if (ChannelManager.isValidFrequency(frequency)
                         && ChannelManager.isValidName(name)
                         && isValidPasswordData(passwordProtected, salt, passwordHash)) {
-                    registry.channels.put(frequency, new ChannelDefinition(
+                    ChannelDefinition definition = new ChannelDefinition(
                             frequency,
                             name,
                             owner,
@@ -53,7 +57,26 @@ public final class ChannelRegistry extends SavedData {
                             passwordProtected,
                             salt,
                             passwordHash
-                    ));
+                    );
+                    if (tag.contains("Members", Tag.TAG_LIST)) {
+                        ListTag membersList = tag.getList("Members", Tag.TAG_INT_ARRAY);
+                        for (int j = 0; j < membersList.size(); j++) {
+                            definition.members().add(net.minecraft.nbt.NbtUtils.loadUUID(membersList.get(j)));
+                        }
+                    }
+                    if (tag.contains("MemberNames", Tag.TAG_LIST)) {
+                        ListTag namesList = tag.getList("MemberNames", Tag.TAG_STRING);
+                        for (int j = 0; j < namesList.size(); j++) {
+                            definition.memberNames().add(namesList.getString(j));
+                        }
+                    }
+                    if (tag.contains("PrivateAccess", Tag.TAG_LIST)) {
+                        ListTag accessList = tag.getList("PrivateAccess", Tag.TAG_INT_ARRAY);
+                        for (int j = 0; j < accessList.size(); j++) {
+                            definition.privateAccess().add(net.minecraft.nbt.NbtUtils.loadUUID(accessList.get(j)));
+                        }
+                    }
+                    registry.channels.put(frequency, definition);
                 }
             } catch (RuntimeException exception) {
                 LOGGER.warn("Ignoring invalid Walkie-Chat channel data at index {}", i, exception);
@@ -91,6 +114,7 @@ public final class ChannelRegistry extends SavedData {
                 salt,
                 passwordHash
         );
+        definition.privateAccess().add(owner);
         channels.put(frequency, definition);
         setDirty();
         return definition;
@@ -102,6 +126,81 @@ public final class ChannelRegistry extends SavedData {
             setDirty();
         }
         return removed;
+    }
+
+    public void addMember(String frequency, UUID playerId, String playerName, MinecraftServer server) {
+        ChannelDefinition definition = channels.get(frequency);
+        if (definition != null) {
+            if (!definition.members().contains(playerId)) {
+                definition.members().add(playerId);
+                definition.memberNames().add(playerName);
+                setDirty();
+                ConnectionManager.syncActiveChannels(server);
+            }
+        }
+    }
+
+    public void removeMember(String frequency, UUID playerId, MinecraftServer server) {
+        ChannelDefinition definition = channels.get(frequency);
+        if (definition != null) {
+            int index = definition.members().indexOf(playerId);
+            if (index != -1) {
+                definition.members().remove(index);
+                definition.memberNames().remove(index);
+                setDirty();
+                if (definition.members().isEmpty()) {
+                    remove(frequency);
+                    ChannelManager.revokeFrequencyAccess(server, frequency);
+                } else if (playerId.equals(definition.owner())) {
+                    UUID newOwnerId = definition.members().get(0);
+                    String newOwnerName = definition.memberNames().get(0);
+                    definition.setOwner(newOwnerId, newOwnerName);
+                }
+                ConnectionManager.syncActiveChannels(server);
+            }
+        }
+    }
+
+    public void grantAccess(UUID playerId, String frequency) {
+        ChannelDefinition definition = channels.get(frequency);
+        if (definition != null) {
+            if (definition.privateAccess().add(playerId)) {
+                setDirty();
+            }
+        }
+    }
+
+    public void revokeAccess(UUID playerId, String frequency) {
+        ChannelDefinition definition = channels.get(frequency);
+        if (definition != null) {
+            if (definition.privateAccess().remove(playerId)) {
+                setDirty();
+            }
+        }
+    }
+
+    public boolean hasAccess(UUID playerId, String frequency) {
+        ChannelDefinition definition = channels.get(frequency);
+        if (definition != null) {
+            return !definition.passwordProtected() || definition.privateAccess().contains(playerId);
+        }
+        return true;
+    }
+
+    public void revokeFrequencyAccess(String frequency) {
+        ChannelDefinition definition = channels.get(frequency);
+        if (definition != null) {
+            definition.privateAccess().clear();
+            setDirty();
+        }
+    }
+
+    public void renameChannel(String frequency, String newName) {
+        ChannelDefinition definition = channels.get(frequency);
+        if (definition != null) {
+            definition.setName(newName);
+            setDirty();
+        }
     }
 
     @Override
@@ -116,6 +215,25 @@ public final class ChannelRegistry extends SavedData {
             tag.putBoolean("PasswordProtected", definition.passwordProtected());
             tag.putString("Salt", definition.salt());
             tag.putString("PasswordHash", definition.passwordHash());
+
+            ListTag membersList = new ListTag();
+            for (UUID uuid : definition.members()) {
+                membersList.add(net.minecraft.nbt.NbtUtils.createUUID(uuid));
+            }
+            tag.put("Members", membersList);
+
+            ListTag namesList = new ListTag();
+            for (String name : definition.memberNames()) {
+                namesList.add(net.minecraft.nbt.StringTag.valueOf(name));
+            }
+            tag.put("MemberNames", namesList);
+
+            ListTag accessList = new ListTag();
+            for (UUID uuid : definition.privateAccess()) {
+                accessList.add(net.minecraft.nbt.NbtUtils.createUUID(uuid));
+            }
+            tag.put("PrivateAccess", accessList);
+
             channelTags.add(tag);
         }
         root.put("Channels", channelTags);
@@ -141,15 +259,85 @@ public final class ChannelRegistry extends SavedData {
         return saltBytes.length == 16 && hashBytes.length == 32;
     }
 
-    public record ChannelDefinition(
-            String frequency,
-            String name,
-            UUID owner,
-            String ownerName,
-            boolean passwordProtected,
-            String salt,
-            String passwordHash
-    ) {
+    public static class ChannelDefinition {
+        private final String frequency;
+        private String name;
+        private UUID owner;
+        private String ownerName;
+        private final boolean passwordProtected;
+        private final String salt;
+        private final String passwordHash;
+        private final List<UUID> members = new ArrayList<>();
+        private final List<String> memberNames = new ArrayList<>();
+        private final Set<UUID> privateAccess = new HashSet<>();
+
+        public ChannelDefinition(
+                String frequency,
+                String name,
+                UUID owner,
+                String ownerName,
+                boolean passwordProtected,
+                String salt,
+                String passwordHash
+        ) {
+            this.frequency = frequency;
+            this.name = name;
+            this.owner = owner;
+            this.ownerName = ownerName;
+            this.passwordProtected = passwordProtected;
+            this.salt = salt;
+            this.passwordHash = passwordHash;
+        }
+
+        public String frequency() {
+            return frequency;
+        }
+
+        public String name() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public UUID owner() {
+            return owner;
+        }
+
+        public String ownerName() {
+            return ownerName;
+        }
+
+        public void setOwner(UUID owner, String ownerName) {
+            this.owner = owner;
+            this.ownerName = ownerName;
+        }
+
+        public boolean passwordProtected() {
+            return passwordProtected;
+        }
+
+        public String salt() {
+            return salt;
+        }
+
+        public String passwordHash() {
+            return passwordHash;
+        }
+
+        public List<UUID> members() {
+            return members;
+        }
+
+        public List<String> memberNames() {
+            return memberNames;
+        }
+
+        public Set<UUID> privateAccess() {
+            return privateAccess;
+        }
+
         public boolean matchesPassword(String password) {
             if (!passwordProtected) {
                 return true;

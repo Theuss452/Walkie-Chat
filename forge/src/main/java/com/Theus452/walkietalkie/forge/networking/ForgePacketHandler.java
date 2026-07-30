@@ -8,6 +8,8 @@ import com.Theus452.walkietalkie.networking.packet.PacketPushChatMessage;
 import com.Theus452.walkietalkie.networking.packet.PacketRequestChannels;
 import com.Theus452.walkietalkie.networking.packet.PacketSetFrequency;
 import com.Theus452.walkietalkie.networking.packet.PacketSyncChannels;
+import com.Theus452.walkietalkie.networking.packet.PacketKickPlayer;
+import com.Theus452.walkietalkie.networking.packet.PacketRenameChannel;
 import com.Theus452.walkietalkie.networking.packet.C2S_ToggleBlockRelayPacket;
 import com.Theus452.walkietalkie.networking.packet.C2S_WalkieBlockMessagePacket;
 import com.Theus452.walkietalkie.networking.packet.PacketSetBlockFrequency;
@@ -40,6 +42,8 @@ public final class ForgePacketHandler {
         INSTANCE.registerMessage(id++, PacketPushChatMessage.class, PacketPushChatMessage::toBytes, PacketPushChatMessage::new, ForgePacketHandler::handlePushChatMessage);
         INSTANCE.registerMessage(id++, PacketSyncChannels.class, PacketSyncChannels::toBytes, PacketSyncChannels::new, ForgePacketHandler::handleSyncChannels);
         INSTANCE.registerMessage(id++, PacketChannelActionResult.class, PacketChannelActionResult::toBytes, PacketChannelActionResult::new, ForgePacketHandler::handleChannelActionResult);
+        INSTANCE.registerMessage(id++, PacketKickPlayer.class, PacketKickPlayer::toBytes, PacketKickPlayer::new, ForgePacketHandler::handleKickPlayer);
+        INSTANCE.registerMessage(id++, PacketRenameChannel.class, PacketRenameChannel::toBytes, PacketRenameChannel::new, ForgePacketHandler::handleRenameChannel);
         INSTANCE.registerMessage(id++, C2S_WalkieBlockMessagePacket.class, C2S_WalkieBlockMessagePacket::toBytes, C2S_WalkieBlockMessagePacket::new, ForgePacketHandler::handleWalkieBlockMessage);
         INSTANCE.registerMessage(id++, PacketSetBlockFrequency.class, PacketSetBlockFrequency::toBytes, PacketSetBlockFrequency::new, ForgePacketHandler::handleSetBlockFrequency);
         INSTANCE.registerMessage(id, C2S_ToggleBlockRelayPacket.class, C2S_ToggleBlockRelayPacket::toBytes, C2S_ToggleBlockRelayPacket::new, ForgePacketHandler::handleToggleBlockRelay);
@@ -104,6 +108,28 @@ public final class ForgePacketHandler {
     private static void handleChannelActionResult(PacketChannelActionResult packet, Supplier<NetworkEvent.Context> contextSupplier) {
         NetworkEvent.Context context = contextSupplier.get();
         context.enqueueWork(() -> PacketChannelActionResult.handle(packet));
+        context.setPacketHandled(true);
+    }
+
+    private static void handleKickPlayer(PacketKickPlayer packet, Supplier<NetworkEvent.Context> contextSupplier) {
+        NetworkEvent.Context context = contextSupplier.get();
+        context.enqueueWork(() -> {
+            ServerPlayer player = context.getSender();
+            if (player != null) {
+                PacketKickPlayer.handle(packet, player);
+            }
+        });
+        context.setPacketHandled(true);
+    }
+
+    private static void handleRenameChannel(PacketRenameChannel packet, Supplier<NetworkEvent.Context> contextSupplier) {
+        NetworkEvent.Context context = contextSupplier.get();
+        context.enqueueWork(() -> {
+            ServerPlayer player = context.getSender();
+            if (player != null) {
+                PacketRenameChannel.handle(packet, player);
+            }
+        });
         context.setPacketHandled(true);
     }
 

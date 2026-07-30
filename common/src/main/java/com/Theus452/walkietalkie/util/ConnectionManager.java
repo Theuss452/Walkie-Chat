@@ -51,6 +51,11 @@ public final class ConnectionManager {
                 DISCONNECTION_TIMERS.remove(playerId);
             }
         }
+        ChannelRegistry registry = ChannelRegistry.get(player.server);
+        ChannelRegistry.ChannelDefinition definition = registry.getChannel(frequency);
+        if (definition != null) {
+            registry.addMember(frequency, playerId, player.getDisplayName().getString(), player.server);
+        }
         if (countWalkieTalkiesWithFrequency(player, frequency) != expectedCount) {
             return;
         }
@@ -156,7 +161,7 @@ public final class ConnectionManager {
 
     public static boolean removeEmptyChannels(MinecraftServer server) {
         ensureServer(server);
-        return removeEmptyChannels(server, System.currentTimeMillis());
+        return false;
     }
 
     private static void removeFrequency(String frequency) {
@@ -195,7 +200,12 @@ public final class ConnectionManager {
         List<PacketSyncChannels.ChannelInfo> channels = new ArrayList<>(frequencies.size());
         for (String frequency : frequencies) {
             ChannelRegistry.ChannelDefinition definition = definitions.get(frequency);
-            List<String> players = activePlayers.getOrDefault(frequency, List.of());
+            List<String> players;
+            if (definition != null) {
+                players = definition.memberNames();
+            } else {
+                players = activePlayers.getOrDefault(frequency, List.of());
+            }
             boolean passwordProtected = definition != null && definition.passwordProtected();
             boolean mayInspect = !passwordProtected || ChannelManager.canAccess(viewer, frequency);
             String name = definition == null
@@ -291,6 +301,7 @@ public final class ConnectionManager {
                     if (player != null) {
                         ChannelManager.revokeAccess(player, frequency);
                     }
+                    ChannelRegistry.get(server).removeMember(frequency, playerId, server);
                 }
                 return true;
             });
@@ -300,28 +311,7 @@ public final class ConnectionManager {
     }
 
     private static boolean removeEmptyChannels(MinecraftServer server, long now) {
-        Set<String> occupiedFrequencies = new HashSet<>();
-        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-            occupiedFrequencies.addAll(collectCurrentFrequencies(player));
-        }
-        for (Map<String, Long> timers : DISCONNECTION_TIMERS.values()) {
-            for (Map.Entry<String, Long> timer : timers.entrySet()) {
-                if (now <= timer.getValue()) {
-                    occupiedFrequencies.add(timer.getKey());
-                }
-            }
-        }
-        boolean removedAny = false;
-        ChannelRegistry registry = ChannelRegistry.get(server);
-        for (ChannelRegistry.ChannelDefinition definition : registry.getChannels()) {
-            if (!occupiedFrequencies.contains(definition.frequency())) {
-                registry.remove(definition.frequency());
-                ChannelManager.revokeFrequencyAccess(server, definition.frequency());
-                removeFrequency(definition.frequency());
-                removedAny = true;
-            }
-        }
-        return removedAny;
+        return false;
     }
 
     private static boolean hasDisconnectTimer(UUID playerId, String frequency) {
