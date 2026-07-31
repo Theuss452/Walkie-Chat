@@ -1,5 +1,6 @@
 {
   "item.walkietalkie.walkie_talkie": "Walkie-Talkie",
+  "block.walkietalkie.walkie_talkie_block": "Walkie-Talkie Station",
 
   "sounds.walkietalkie.walkie_talkie_open_menu": "Walkie Talkie Menu",
   "sounds.walkietalkie.change_channel": "Walkie Talkie Channel Change",
@@ -20,6 +21,10 @@
   "gui.walkietalkie.frequency.suggestion": "Enter a value (1-1000)",
   "tooltip.walkietalkie.frequency.chat": "§7Frequency: §e%s",
   "message.walkietalkie.no_one_on_frequency": "There is no one on this frequency to see your message!",
-  "message.walkietalkie.lost_connection": "%s lost the walkie-talkie and left the frequency"
+  "message.walkietalkie.lost_connection": "%s lost the walkie-talkie and left the frequency",
 
+  "message.walkietalkie.block.not_owner": "You are not the owner of this station!",
+  "message.walkietalkie.block.toggled_on": "Walkie-Talkie station turned ON.",
+  "message.walkietalkie.block.toggled_off": "Walkie-Talkie station turned OFF.",
+  "message.walkietalkie.block.private_forbidden": "Blocks cannot tune into private frequencies."
 }

@@ -1,12 +1,13 @@
 package com.Theus452.walkietalkie.fabric;
 
 import com.Theus452.walkietalkie.WalkieTalkieMod;
+import com.Theus452.walkietalkie.fabric.block.FabricBlocks;
 import com.Theus452.walkietalkie.fabric.command.FabricCommands;
 import com.Theus452.walkietalkie.fabric.config.FabricModConfigs;
 import com.Theus452.walkietalkie.fabric.event.FabricEvents;
 import com.Theus452.walkietalkie.fabric.item.FabricCreativeTabs;
-import com.Theus452.walkietalkie.fabric.networking.FabricPacketHandler;
 import com.Theus452.walkietalkie.fabric.item.FabricItems;
+import com.Theus452.walkietalkie.fabric.networking.FabricPacketHandler;
 import com.Theus452.walkietalkie.fabric.platform.FabricPlatformHelper;
 import com.Theus452.walkietalkie.fabric.sounds.FabricSounds;
 import com.Theus452.walkietalkie.platform.Platform;
@@ -25,6 +26,7 @@ public class FabricWalkieTalkieMod implements ModInitializer {
         Platform.setHelper(new FabricPlatformHelper());
         Proxy.setProxy(new CommonProxy());
         FabricItems.register();
+        FabricBlocks.register();
         FabricSounds.register();
         FabricCreativeTabs.register();
         FabricPacketHandler.registerC2SPackets();
