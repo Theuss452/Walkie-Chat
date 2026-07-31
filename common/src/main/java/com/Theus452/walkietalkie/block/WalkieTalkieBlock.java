@@ -35,6 +35,8 @@ import net.minecraft.world.level.material.MapColor;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -44,6 +46,11 @@ public class WalkieTalkieBlock extends BaseEntityBlock {
     public static final DirectionProperty FACING = HorizontalDirectionalBlock.FACING;
     public static final BooleanProperty ACTIVE = BooleanProperty.create("active");
     public static final BooleanProperty REPEATER = BooleanProperty.create("repeater");
+
+    private static final VoxelShape SHAPE_NORTH = Block.box(4.5, 0.0, 6.5, 11.5, 14.0, 9.5);
+    private static final VoxelShape SHAPE_SOUTH = Block.box(4.5, 0.0, 6.5, 11.5, 14.0, 9.5);
+    private static final VoxelShape SHAPE_EAST = Block.box(6.5, 0.0, 4.5, 9.5, 14.0, 11.5);
+    private static final VoxelShape SHAPE_WEST = Block.box(6.5, 0.0, 4.5, 9.5, 14.0, 11.5);
 
     public WalkieTalkieBlock() {
         super(BlockBehaviour.Properties.of()
@@ -66,7 +73,17 @@ public class WalkieTalkieBlock extends BaseEntityBlock {
     @Nullable
     @Override
     public BlockState getStateForPlacement(BlockPlaceContext context) {
-        return this.defaultBlockState().setValue(FACING, context.getHorizontalDirection().getOpposite());
+        return this.defaultBlockState().setValue(FACING, context.getHorizontalDirection());
+    }
+
+    @Override
+    public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+        return switch (state.getValue(FACING)) {
+            case SOUTH -> SHAPE_SOUTH;
+            case EAST -> SHAPE_EAST;
+            case WEST -> SHAPE_WEST;
+            default -> SHAPE_NORTH;
+        };
     }
 
     @Override

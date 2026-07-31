@@ -53,7 +53,7 @@ public class WalkieTalkieItem extends Item {
             BlockPos placePos = placeContext.getClickedPos();
             ItemStack stack = context.getItemInHand();
             BlockState blockState = ModBlocks.WALKIE_TALKIE_BLOCK.get().defaultBlockState()
-                    .setValue(WalkieTalkieBlock.FACING, player.getDirection().getOpposite())
+                    .setValue(WalkieTalkieBlock.FACING, player.getDirection())
                     .setValue(WalkieTalkieBlock.ACTIVE, false);
 
             CollisionContext collisionContext = CollisionContext.of(player);
