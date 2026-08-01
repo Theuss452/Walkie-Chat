@@ -131,31 +131,35 @@ public final class ChannelRegistry extends SavedData {
     public void addMember(String frequency, UUID playerId, String playerName, MinecraftServer server) {
         ChannelDefinition definition = channels.get(frequency);
         if (definition != null) {
-            if (!definition.members().contains(playerId)) {
-                definition.members().add(playerId);
-                definition.memberNames().add(playerName);
-                setDirty();
-                ConnectionManager.syncActiveChannels(server);
+            int existingIndex = definition.members().indexOf(playerId);
+            if (existingIndex != -1) {
+                definition.members().remove(existingIndex);
+                if (existingIndex < definition.memberNames().size()) {
+                    definition.memberNames().remove(existingIndex);
+                }
             }
+            definition.memberNames().removeIf(name -> name.equalsIgnoreCase(playerName));
+            definition.members().add(playerId);
+            definition.memberNames().add(playerName);
+            setDirty();
+            ConnectionManager.syncActiveChannels(server);
         }
     }
 
     public void removeMember(String frequency, UUID playerId, MinecraftServer server) {
         ChannelDefinition definition = channels.get(frequency);
         if (definition != null) {
-            int index = definition.members().indexOf(playerId);
-            if (index != -1) {
+            boolean removed = false;
+            while (definition.members().contains(playerId)) {
+                int index = definition.members().indexOf(playerId);
                 definition.members().remove(index);
-                definition.memberNames().remove(index);
-                setDirty();
-                if (definition.members().isEmpty()) {
-                    remove(frequency);
-                    ChannelManager.revokeFrequencyAccess(server, frequency);
-                } else if (playerId.equals(definition.owner())) {
-                    UUID newOwnerId = definition.members().get(0);
-                    String newOwnerName = definition.memberNames().get(0);
-                    definition.setOwner(newOwnerId, newOwnerName);
+                if (index < definition.memberNames().size()) {
+                    definition.memberNames().remove(index);
                 }
+                removed = true;
+            }
+            if (removed) {
+                setDirty();
                 ConnectionManager.syncActiveChannels(server);
             }
         }

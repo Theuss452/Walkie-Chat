@@ -136,12 +136,12 @@ public final class ChannelManager {
     }
 
     public static boolean canAccess(ServerPlayer player, String frequency) {
-        if (frequency == null || frequency.isEmpty()) {
+        if (frequency == null || frequency.isEmpty() || !isValidFrequency(frequency)) {
             return false;
         }
         ChannelRegistry.ChannelDefinition definition = ChannelRegistry.get(player.server).getChannel(frequency);
         if (definition == null) {
-            return false;
+            return true;
         }
         return !definition.passwordProtected() || hasAccess(player, frequency);
     }
@@ -185,6 +185,24 @@ public final class ChannelManager {
     }
 
     public static void cleanup(MinecraftServer server) {
+        if (server == null) return;
+        ChannelRegistry registry = ChannelRegistry.get(server);
+        boolean changed = false;
+        java.util.List<ChannelRegistry.ChannelDefinition> copy = new java.util.ArrayList<>(registry.getChannels());
+        for (ChannelRegistry.ChannelDefinition definition : copy) {
+            String freq = definition.frequency();
+            java.util.List<java.util.UUID> membersCopy = new java.util.ArrayList<>(definition.members());
+            for (java.util.UUID memberId : membersCopy) {
+                ServerPlayer player = server.getPlayerList().getPlayer(memberId);
+                if (player != null && !hasTunedWalkie(player, freq)) {
+                    registry.removeMember(freq, memberId, server);
+                    changed = true;
+                }
+            }
+        }
+        if (changed) {
+            ConnectionManager.syncActiveChannels(server);
+        }
     }
 
     public static boolean isValidFrequency(String frequency) {
@@ -277,7 +295,6 @@ public final class ChannelManager {
         boolean keepsOldFrequency = hasOtherWalkieWithFrequency(player, oldFrequency, stack);
         if (!oldFrequency.isEmpty() && !keepsOldFrequency) {
             ConnectionManager.cancelDisconnect(player, oldFrequency);
-            revokeAccess(player, oldFrequency);
             ChannelRegistry.get(player.server).removeMember(oldFrequency, player.getUUID(), player.server);
             Component leaveMessage = Component.literal("[Walkie-Talkie] ").withStyle(ChatFormatting.GREEN)
                     .append(Component.translatable("message.walkietalkie.leave.other", player.getDisplayName())
@@ -330,8 +347,13 @@ public final class ChannelManager {
             if (frequency.isEmpty()) {
                 continue;
             }
+            if (!isValidFrequency(frequency)) {
+                WalkieTalkieItem.setFrequency(stack, "");
+                changed = true;
+                continue;
+            }
             ChannelRegistry.ChannelDefinition definition = registry.getChannel(frequency);
-            if (definition == null || definition.passwordProtected() && !hasAccess(player, frequency)) {
+            if (definition != null && definition.passwordProtected() && !hasAccess(player, frequency)) {
                 WalkieTalkieItem.setFrequency(stack, "");
                 changed = true;
             }
@@ -396,11 +418,9 @@ public final class ChannelManager {
         registry.revokeAccess(target.getUUID(), frequency);
         ConnectionManager.cancelDisconnect(target, frequency);
         registry.removeMember(frequency, target.getUUID(), kicker.server);
+        kicker.sendSystemMessage(Component.translatable("message.walkietalkie.kicked_other", targetPlayerName));
         if (changed) {
-            target.sendSystemMessage(
-                    Component.translatable("message.walkietalkie.kicked_from_channel", frequency)
-                            .withStyle(ChatFormatting.RED)
-            );
+            target.sendSystemMessage(Component.translatable("message.walkietalkie.kicked_self").withStyle(ChatFormatting.RED));
             target.playNotifySound(ModSounds.WALKIE_TALKIE_CHANGE_CHANNEL.get(), SoundSource.PLAYERS, 1.0F, 1.0F);
         }
     }

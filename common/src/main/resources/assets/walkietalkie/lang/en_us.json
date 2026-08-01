@@ -81,5 +81,8 @@
   "gui.walkietalkie.popup.kick_title": "Kick Player?",
   "gui.walkietalkie.popup.kick_desc": "Do you want to kick %s from the channel?",
   "message.walkietalkie.kicked_from_channel": "You were kicked from channel %s.",
-  "gui.walkietalkie.error.kick_denied": "Only the owner can kick players."
+  "gui.walkietalkie.error.kick_denied": "Only the owner can kick players.",
+  "gui.walkietalkie.error.kicked_by_owner": "You were kicked from the channel by the owner.",
+  "message.walkietalkie.kicked_self": "§8[§aWalkie-Talkie§8] §fYou were kicked from the channel by the owner.",
+  "message.walkietalkie.kicked_other": "§8[§aWalkie-Talkie§8] §fYou kicked §e%s §ffrom the channel."
 }

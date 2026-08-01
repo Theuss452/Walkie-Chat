@@ -1,5 +1,6 @@
 package com.Theus452.walkietalkie.networking.packet;
 
+import com.Theus452.walkietalkie.client.ChannelMessageCache;
 import net.minecraft.network.FriendlyByteBuf;
 
 public class PacketPushChatMessage {
@@ -26,7 +27,7 @@ public class PacketPushChatMessage {
     }
 
     public static void handle(PacketPushChatMessage pkt) {
-        com.Theus452.walkietalkie.client.ChannelMessageCache.add(pkt.frequency, pkt.senderName, pkt.message);
+        ChannelMessageCache.add(pkt.frequency, pkt.senderName, pkt.message);
     }
 
     public String frequency()  { return frequency; }

@@ -135,6 +135,19 @@ public final class ConnectionManager {
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             onlinePlayers.add(player.getUUID());
         }
+        for (UUID playerId : new ArrayList<>(ACTIVE_FREQUENCIES.keySet())) {
+            if (!onlinePlayers.contains(playerId)) {
+                Set<String> freqs = ACTIVE_FREQUENCIES.get(playerId);
+                if (freqs != null) {
+                    for (String freq : new ArrayList<>(freqs)) {
+                        ChannelRegistry.ChannelDefinition definition = ChannelRegistry.get(server).getChannel(freq);
+                        if (definition != null && playerId.equals(definition.owner())) {
+                            ChannelRegistry.get(server).removeMember(freq, playerId, server);
+                        }
+                    }
+                }
+            }
+        }
         ACTIVE_FREQUENCIES.keySet().removeIf(playerId -> !onlinePlayers.contains(playerId));
         LAST_SENT_HASHES.keySet().removeIf(playerId -> !onlinePlayers.contains(playerId));
 
@@ -298,9 +311,6 @@ public final class ConnectionManager {
                             otherPlayer.sendSystemMessage(lostMessage);
                         }
                     }
-                    if (player != null) {
-                        ChannelManager.revokeAccess(player, frequency);
-                    }
                     ChannelRegistry.get(server).removeMember(frequency, playerId, server);
                 }
                 return true;
@@ -311,7 +321,8 @@ public final class ConnectionManager {
     }
 
     private static boolean removeEmptyChannels(MinecraftServer server, long now) {
-        return false;
+        ChannelManager.cleanup(server);
+        return true;
     }
 
     private static boolean hasDisconnectTimer(UUID playerId, String frequency) {

@@ -81,5 +81,8 @@
   "gui.walkietalkie.popup.kick_title": "Expulsar Jogador?",
   "gui.walkietalkie.popup.kick_desc": "Deseja expulsar %s do canal?",
   "message.walkietalkie.kicked_from_channel": "Você foi expulso do canal %s.",
-  "gui.walkietalkie.error.kick_denied": "Apenas o dono pode expulsar jogadores."
+  "gui.walkietalkie.error.kick_denied": "Apenas o dono pode expulsar jogadores.",
+  "gui.walkietalkie.error.kicked_by_owner": "Você foi kickado do canal pelo proprietário.",
+  "message.walkietalkie.kicked_self": "§8[§aWalkie-Talkie§8] §fVocê foi kickado do canal pelo proprietário.",
+  "message.walkietalkie.kicked_other": "§8[§aWalkie-Talkie§8] §fVocê kickou §e%s §fdo canal."
 }

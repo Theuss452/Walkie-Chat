@@ -8,8 +8,8 @@ import com.Theus452.walkietalkie.networking.packet.PacketSyncChannels;
 import com.Theus452.walkietalkie.proxy.ClientProxy;
 import com.Theus452.walkietalkie.proxy.Proxy;
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.model.ModelLoadingRegistry;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.resources.model.ModelResourceLocation;
 import net.minecraft.resources.ResourceLocation;
 
