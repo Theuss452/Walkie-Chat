@@ -126,7 +126,9 @@ public class WalkieTalkieBlock extends BaseEntityBlock {
                     level.playSound(null, pos, ModSounds.WALKIE_TALKIE_CHANGE_CHANNEL.get(), SoundSource.BLOCKS, 1.0f, 1.0f);
                 }
 
-                if (!player.getInventory().add(dropStack)) {
+                if (player.getItemInHand(InteractionHand.MAIN_HAND).isEmpty()) {
+                    player.setItemInHand(InteractionHand.MAIN_HAND, dropStack);
+                } else if (!player.getInventory().add(dropStack)) {
                     player.drop(dropStack, false);
                 }
             }
@@ -145,7 +147,9 @@ public class WalkieTalkieBlock extends BaseEntityBlock {
             BlockEntity be = level.getBlockEntity(pos);
             if (be instanceof WalkieTalkieBlockEntity walkieBE) {
                 applyStackDataToBlock(walkieBE, stack, player);
-                level.setBlock(pos, state.setValue(ACTIVE, false), 3);
+                boolean activeState = !walkieBE.getFrequency().isEmpty();
+                walkieBE.setActive(activeState);
+                level.setBlock(pos, state.setValue(ACTIVE, activeState), 3);
             }
         }
     }
@@ -202,12 +206,13 @@ public class WalkieTalkieBlock extends BaseEntityBlock {
         if (!name.isEmpty()) {
             block.setChannelName(name);
         }
-        UUID owner = WalkieTalkieItem.getBlockOwner(stack);
-        if (owner == null && placer != null) {
-            owner = placer.getUUID();
-        }
-        if (owner != null) {
-            block.setOwnerUUID(owner);
+        if (placer != null) {
+            block.setOwnerUUID(placer.getUUID());
+        } else {
+            UUID owner = WalkieTalkieItem.getBlockOwner(stack);
+            if (owner != null) {
+                block.setOwnerUUID(owner);
+            }
         }
         block.setRelayEnabled(WalkieTalkieItem.getBlockRelayEnabled(stack));
         block.setActive(false);

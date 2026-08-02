@@ -2,6 +2,7 @@ package com.Theus452.walkietalkie.fabric.platform;
 
 import com.Theus452.walkietalkie.fabric.config.FabricModConfigs;
 import com.Theus452.walkietalkie.fabric.networking.FabricPacketHandler;
+import com.Theus452.walkietalkie.networking.packet.PacketSetBlockFrequency;
 import com.Theus452.walkietalkie.networking.packet.PacketSetFrequency;
 import com.Theus452.walkietalkie.platform.IPlatformHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -10,20 +11,16 @@ import net.minecraft.network.FriendlyByteBuf;
 
 public class FabricPlatformHelper implements IPlatformHelper {
 
-    
-    
-
     @Override
     public void sendToServer(Object packet) {
-        
-        if (packet instanceof PacketSetFrequency) {
-            PacketSetFrequency p = (PacketSetFrequency) packet;
-            
+        if (packet instanceof PacketSetFrequency p) {
             FriendlyByteBuf buf = PacketByteBufs.create();
-            
             p.toBytes(buf);
-            
             ClientPlayNetworking.send(FabricPacketHandler.SET_FREQUENCY_ID, buf);
+        } else if (packet instanceof PacketSetBlockFrequency p) {
+            FriendlyByteBuf buf = PacketByteBufs.create();
+            p.toBytes(buf);
+            ClientPlayNetworking.send(FabricPacketHandler.SET_BLOCK_FREQUENCY_ID, buf);
         }
     }
 
