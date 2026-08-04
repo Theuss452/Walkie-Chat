@@ -50,11 +50,13 @@ public class WalkieTalkieItem extends Item {
                 return InteractionResult.FAIL;
             }
 
+            BlockState blockState = ModBlocks.WALKIE_TALKIE_BLOCK.get().getStateForPlacement(placeContext);
+            if (blockState == null) {
+                return InteractionResult.FAIL;
+            }
+
             BlockPos placePos = placeContext.getClickedPos();
             ItemStack stack = context.getItemInHand();
-            BlockState blockState = ModBlocks.WALKIE_TALKIE_BLOCK.get().defaultBlockState()
-                    .setValue(WalkieTalkieBlock.FACING, player.getDirection())
-                    .setValue(WalkieTalkieBlock.ACTIVE, false);
 
             CollisionContext collisionContext = CollisionContext.of(player);
             if (!level.isUnobstructed(blockState, placePos, collisionContext)) {
@@ -66,7 +68,6 @@ public class WalkieTalkieItem extends Item {
                 BlockEntity be = level.getBlockEntity(placePos);
                 if (be instanceof WalkieTalkieBlockEntity walkieBE) {
                     WalkieTalkieBlock.applyStackDataToBlock(walkieBE, stack, player);
-                    level.setBlock(placePos, blockState.setValue(WalkieTalkieBlock.ACTIVE, false), 3);
                 }
 
                 if (ModSounds.WALKIE_TALKIE_CHANGE_CHANNEL != null) {

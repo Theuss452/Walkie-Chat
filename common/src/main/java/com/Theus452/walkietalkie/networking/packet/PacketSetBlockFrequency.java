@@ -1,8 +1,6 @@
 package com.Theus452.walkietalkie.networking.packet;
 
-import com.Theus452.walkietalkie.block.WalkieTalkieBlock;
 import com.Theus452.walkietalkie.block.WalkieTalkieBlockEntity;
-import com.Theus452.walkietalkie.item.WalkieTalkieItem;
 import com.Theus452.walkietalkie.sound.ModSounds;
 import com.Theus452.walkietalkie.util.ServerRateLimiter;
 import com.Theus452.walkietalkie.util.WalkieFrequency;
@@ -13,8 +11,6 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.item.ItemStack;
 
 public class PacketSetBlockFrequency {
     private static final long FREQUENCY_CHANGE_INTERVAL_TICKS = 10L;
@@ -52,9 +48,7 @@ public class PacketSetBlockFrequency {
             return;
         }
         blockEntity.setFrequency(frequency);
-        blockEntity.setActive(true);
         if (player.level() != null) {
-            player.level().setBlock(packet.pos, blockEntity.getBlockState().setValue(WalkieTalkieBlock.ACTIVE, true), 3);
             if (ModSounds.WALKIE_TALKIE_CHANGE_CHANNEL != null) {
                 player.level().playSound(null, packet.pos, ModSounds.WALKIE_TALKIE_CHANGE_CHANNEL.get(), SoundSource.BLOCKS, 1.0F, 1.0F);
             }
@@ -65,5 +59,3 @@ public class PacketSetBlockFrequency {
         player.sendSystemMessage(Component.translatable("message.walkietalkie.join.self", frequency).withStyle(ChatFormatting.GREEN));
     }
 }
-
-

@@ -18,8 +18,11 @@ import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Explosion;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.BaseEntityBlock;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.SoundType;
@@ -44,40 +47,92 @@ import java.util.UUID;
 
 public class WalkieTalkieBlock extends BaseEntityBlock {
     public static final DirectionProperty FACING = HorizontalDirectionalBlock.FACING;
-    public static final BooleanProperty ACTIVE = BooleanProperty.create("active");
     public static final BooleanProperty REPEATER = BooleanProperty.create("repeater");
+    public static final BooleanProperty WALL = BooleanProperty.create("wall");
 
     private static final VoxelShape SHAPE_NORTH = Block.box(4.5, 0.0, 6.5, 11.5, 14.0, 9.5);
     private static final VoxelShape SHAPE_SOUTH = Block.box(4.5, 0.0, 6.5, 11.5, 14.0, 9.5);
     private static final VoxelShape SHAPE_EAST = Block.box(6.5, 0.0, 4.5, 9.5, 14.0, 11.5);
     private static final VoxelShape SHAPE_WEST = Block.box(6.5, 0.0, 4.5, 9.5, 14.0, 11.5);
 
+    private static final VoxelShape WALL_SHAPE_NORTH = Block.box(4.5, 0.0, 0.0, 11.5, 14.0, 3.0);
+    private static final VoxelShape WALL_SHAPE_SOUTH = Block.box(4.5, 0.0, 13.0, 11.5, 14.0, 16.0);
+    private static final VoxelShape WALL_SHAPE_EAST = Block.box(13.0, 0.0, 4.5, 16.0, 14.0, 11.5);
+    private static final VoxelShape WALL_SHAPE_WEST = Block.box(0.0, 0.0, 4.5, 3.0, 14.0, 11.5);
+
     public WalkieTalkieBlock() {
         super(BlockBehaviour.Properties.of()
                 .mapColor(MapColor.METAL)
                 .strength(1.0f, 0.8f)
                 .sound(SoundType.METAL)
-                .lightLevel(state -> state.getValue(ACTIVE) ? 12 : 2)
                 .noOcclusion());
         this.registerDefaultState(this.stateDefinition.any()
                 .setValue(FACING, Direction.NORTH)
-                .setValue(ACTIVE, false)
-                .setValue(REPEATER, false));
+                .setValue(REPEATER, false)
+                .setValue(WALL, false));
     }
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-        builder.add(FACING, ACTIVE, REPEATER);
+        builder.add(FACING, REPEATER, WALL);
     }
 
     @Nullable
     @Override
     public BlockState getStateForPlacement(BlockPlaceContext context) {
-        return this.defaultBlockState().setValue(FACING, context.getHorizontalDirection());
+        Direction clickedFace = context.getClickedFace();
+        Level level = context.getLevel();
+        BlockPos pos = context.getClickedPos();
+
+        if (clickedFace.getAxis().isHorizontal()) {
+            Direction wallDirection = clickedFace.getOpposite();
+            BlockPos wallPos = pos.relative(wallDirection);
+            if (level.getBlockState(wallPos).isFaceSturdy(level, wallPos, clickedFace)) {
+                return this.defaultBlockState()
+                        .setValue(FACING, wallDirection)
+                        .setValue(WALL, true);
+            }
+        }
+
+        BlockPos belowPos = pos.below();
+        if (level.getBlockState(belowPos).isFaceSturdy(level, belowPos, Direction.UP)) {
+            return this.defaultBlockState()
+                    .setValue(FACING, context.getHorizontalDirection())
+                    .setValue(WALL, false);
+        }
+
+        return null;
+    }
+
+    @Override
+    public boolean canSurvive(BlockState state, LevelReader level, BlockPos pos) {
+        if (state.getValue(WALL)) {
+            Direction wallDirection = state.getValue(FACING);
+            BlockPos wallPos = pos.relative(wallDirection);
+            return level.getBlockState(wallPos).isFaceSturdy(level, wallPos, wallDirection.getOpposite());
+        }
+        BlockPos belowPos = pos.below();
+        return level.getBlockState(belowPos).isFaceSturdy(level, belowPos, Direction.UP);
+    }
+
+    @Override
+    public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState, LevelAccessor level, BlockPos pos, BlockPos neighborPos) {
+        if (!state.canSurvive(level, pos)) {
+            return Blocks.AIR.defaultBlockState();
+        }
+        return super.updateShape(state, direction, neighborState, level, pos, neighborPos);
     }
 
     @Override
     public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+        if (state.getValue(WALL)) {
+            return switch (state.getValue(FACING)) {
+                case SOUTH -> WALL_SHAPE_SOUTH;
+                case EAST -> WALL_SHAPE_EAST;
+                case WEST -> WALL_SHAPE_WEST;
+                default -> WALL_SHAPE_NORTH;
+            };
+        }
         return switch (state.getValue(FACING)) {
             case SOUTH -> SHAPE_SOUTH;
             case EAST -> SHAPE_EAST;
@@ -147,9 +202,6 @@ public class WalkieTalkieBlock extends BaseEntityBlock {
             BlockEntity be = level.getBlockEntity(pos);
             if (be instanceof WalkieTalkieBlockEntity walkieBE) {
                 applyStackDataToBlock(walkieBE, stack, player);
-                boolean activeState = !walkieBE.getFrequency().isEmpty();
-                walkieBE.setActive(activeState);
-                level.setBlock(pos, state.setValue(ACTIVE, activeState), 3);
             }
         }
     }
@@ -215,7 +267,6 @@ public class WalkieTalkieBlock extends BaseEntityBlock {
             }
         }
         block.setRelayEnabled(WalkieTalkieItem.getBlockRelayEnabled(stack));
-        block.setActive(false);
     }
 
     private static String findChannelNameForOwner(WalkieTalkieBlockEntity block, String frequency) {

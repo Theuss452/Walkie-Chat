@@ -16,11 +16,6 @@
                                     "source": "frequency",
                                     "target": "frequency",
                                     "op": "replace"
-                                },
-                                {
-                                    "source": "active",
-                                    "target": "is_active",
-                                    "op": "replace"
                                 }
                             ]
                         }

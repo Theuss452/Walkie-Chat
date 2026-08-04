@@ -27,7 +27,6 @@ public class WalkieTalkieBlockEntity extends BlockEntity {
     private static final Logger LOGGER = LoggerFactory.getLogger("WalkieTalkie-BlockEntity");
 
     private static final String NBT_FREQUENCY = "frequency";
-    private static final String NBT_ACTIVE = "active";
     private static final String NBT_OWNER = "owner";
     private static final String NBT_REPEATER = "isRepeater";
     private static final String NBT_RELAY_ENABLED = "relayEnabled";
@@ -37,7 +36,6 @@ public class WalkieTalkieBlockEntity extends BlockEntity {
 
     private String frequency = "";
     private String channelName = "";
-    private boolean active = false;
     private boolean registeredInNetwork = false;
     private ResourceKey<Level> registeredDimension = null;
     public UUID ownerUUID;
@@ -83,21 +81,7 @@ public class WalkieTalkieBlockEntity extends BlockEntity {
     }
 
     public boolean isActive() {
-        return active;
-    }
-
-    public void setActive(boolean active) {
-        if (this.active == active) {
-            return;
-        }
-        if (!active) {
-            unregisterIfNeeded();
-        }
-        this.active = active;
-        if (active) {
-            registerIfNeeded();
-        }
-        markDirtyAndSync();
+        return !frequency.isEmpty();
     }
 
     @Override
@@ -126,7 +110,6 @@ public class WalkieTalkieBlockEntity extends BlockEntity {
                 this.frequency = "";
             }
             this.channelName = WalkieFrequency.sanitizeChannelName(SafeNbt.string(nbt, NBT_CHANNEL_NAME, "", 20));
-            this.active = SafeNbt.bool(nbt, NBT_ACTIVE, false);
             this.ownerUUID = SafeNbt.uuidOrNull(nbt, NBT_OWNER);
             this.repeater = SafeNbt.bool(nbt, NBT_REPEATER, false);
             this.relayEnabled = SafeNbt.bool(nbt, NBT_RELAY_ENABLED, true);
@@ -134,7 +117,6 @@ public class WalkieTalkieBlockEntity extends BlockEntity {
             LOGGER.debug("Recovered Walkie block entity from malformed NBT at {}.", worldPosition, exception);
             this.frequency = "";
             this.channelName = "";
-            this.active = false;
             this.ownerUUID = null;
             this.repeater = false;
             this.relayEnabled = true;
@@ -149,7 +131,6 @@ public class WalkieTalkieBlockEntity extends BlockEntity {
         if (channelName != null && !channelName.isEmpty()) {
             nbt.putString(NBT_CHANNEL_NAME, channelName);
         }
-        nbt.putBoolean(NBT_ACTIVE, active);
         if (ownerUUID != null) {
             nbt.putUUID(NBT_OWNER, ownerUUID);
         }
@@ -228,7 +209,7 @@ public class WalkieTalkieBlockEntity extends BlockEntity {
     }
 
     private void registerIfNeeded() {
-        if (registeredInNetwork || !active || frequency.isEmpty() || !(level instanceof ServerLevel serverLevel)) {
+        if (registeredInNetwork || frequency.isEmpty() || !(level instanceof ServerLevel serverLevel)) {
             return;
         }
         WalkieBlockRegistry.register(serverLevel, worldPosition, frequency);
