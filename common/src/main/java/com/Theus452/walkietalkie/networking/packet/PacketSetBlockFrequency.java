@@ -3,6 +3,7 @@ package com.Theus452.walkietalkie.networking.packet;
 import com.Theus452.walkietalkie.block.WalkieTalkieBlockEntity;
 import com.Theus452.walkietalkie.sound.ModSounds;
 import com.Theus452.walkietalkie.util.ServerRateLimiter;
+import com.Theus452.walkietalkie.util.ConnectionManager;
 import com.Theus452.walkietalkie.util.WalkieFrequency;
 import com.Theus452.walkietalkie.util.WalkieSecurity;
 import net.minecraft.ChatFormatting;
@@ -47,6 +48,8 @@ public class PacketSetBlockFrequency {
             player.sendSystemMessage(Component.translatable("message.walkietalkie.block.not_owner").withStyle(ChatFormatting.RED));
             return;
         }
+        String oldFrequency = blockEntity.getFrequency();
+        if (oldFrequency.equals(frequency)) return;
         blockEntity.setFrequency(frequency);
         if (player.level() != null) {
             if (ModSounds.WALKIE_TALKIE_CHANGE_CHANNEL != null) {
@@ -56,6 +59,7 @@ public class PacketSetBlockFrequency {
         if (blockEntity.ownerUUID == null) {
             blockEntity.setOwnerUUID(player.getUUID());
         }
-        player.sendSystemMessage(Component.translatable("message.walkietalkie.join.self", frequency).withStyle(ChatFormatting.GREEN));
+        ConnectionManager.disconnectImmediatelyIfAbsent(player, oldFrequency);
+        ConnectionManager.refreshPlayer(player);
     }
 }

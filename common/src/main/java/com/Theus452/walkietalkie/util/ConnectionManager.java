@@ -1,6 +1,7 @@
 package com.Theus452.walkietalkie.util;
 
 import com.Theus452.walkietalkie.item.WalkieTalkieItem;
+import com.Theus452.walkietalkie.networking.WalkieBlockRegistry;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
@@ -19,7 +20,7 @@ public class ConnectionManager {
     private static final long TIMEOUT = 30 * 1000;
 
     public static void playerDroppedWalkieTalkie(ServerPlayer player, String frequency) {
-        if (countWalkieTalkiesWithFrequency(player, frequency) == 0) {
+        if (countConnectionsWithFrequency(player, frequency) == 0) {
             UUID playerUUID = player.getUUID();
             disconnectionTimers.computeIfAbsent(playerUUID, k -> new HashMap<>()).put(frequency, System.currentTimeMillis() + TIMEOUT);
         }
@@ -38,7 +39,7 @@ public class ConnectionManager {
             }
         }
 
-        if (countWalkieTalkiesWithFrequency(player, frequency) == expectedCount) {
+        if (countConnectionsWithFrequency(player, frequency) == expectedCount) {
             player.sendSystemMessage(Component.translatable("message.walkietalkie.join.self", frequency).withStyle(ChatFormatting.GREEN));
 
             if (!recoveredConnection) {
@@ -48,7 +49,7 @@ public class ConnectionManager {
 
                 for (ServerPlayer otherPlayer : player.server.getPlayerList().getPlayers()) {
                     if (otherPlayer == player) continue;
-                    if (hasWalkieTalkieWithFrequency(otherPlayer, frequency)) {
+                    if (hasConnectionWithFrequency(otherPlayer, frequency)) {
                         if (countTotalWalkieTalkies(otherPlayer) > 1) {
                             otherPlayer.sendSystemMessage(joinMessage.copy().append(Component.literal(" [" + frequency + "]").withStyle(ChatFormatting.GRAY)));
                         } else {
@@ -75,49 +76,14 @@ public class ConnectionManager {
         }
     }
 
+    public static void onPlayerPlacedWalkieBlock(ServerPlayer player, String frequency) {
+        if (player == null || frequency == null || frequency.isEmpty()) return;
+        refreshPlayer(player);
+    }
+
     public static void tick(MinecraftServer server) {
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-            UUID playerUUID = player.getUUID();
-            Set<String> currentFrequencies = new HashSet<>();
-
-            for (ItemStack stack : player.getInventory().items) {
-                if (stack.getItem() instanceof WalkieTalkieItem) {
-                    String freq = WalkieTalkieItem.getFrequency(stack);
-                    if (!freq.isEmpty()) {
-                        currentFrequencies.add(freq);
-                    }
-                }
-            }
-
-            for (ItemStack stack : player.getInventory().offhand) {
-                if (stack.getItem() instanceof WalkieTalkieItem) {
-                    String freq = WalkieTalkieItem.getFrequency(stack);
-                    if (!freq.isEmpty()) {
-                        currentFrequencies.add(freq);
-                    }
-                }
-            }
-
-            Set<String> lastFrequencies = activeFrequencies.getOrDefault(playerUUID, new HashSet<>());
-
-            for (String freq : lastFrequencies) {
-                if (!currentFrequencies.contains(freq)) {
-                    boolean hasTimer = disconnectionTimers.containsKey(playerUUID) &&
-                            disconnectionTimers.get(playerUUID).containsKey(freq);
-
-                    if (!hasTimer) {
-                        playerDroppedWalkieTalkie(player, freq);
-                    }
-                }
-            }
-
-            for (String freq : currentFrequencies) {
-                if (!lastFrequencies.contains(freq)) {
-                    playerPickedUpWalkieTalkie(player, freq, countWalkieTalkiesWithFrequency(player, freq));
-                }
-            }
-
-            activeFrequencies.put(playerUUID, currentFrequencies);
+            refreshPlayer(player);
         }
 
         activeFrequencies.keySet().removeIf(uuid -> server.getPlayerList().getPlayer(uuid) == null);
@@ -130,14 +96,14 @@ public class ConnectionManager {
             entry.getValue().entrySet().removeIf(freqEntry -> {
                 String frequency = freqEntry.getKey();
                 if (currentTime > freqEntry.getValue()) {
-                    if (player == null || countWalkieTalkiesWithFrequency(player, frequency) == 0) {
+                    if (player == null || countConnectionsWithFrequency(player, frequency) == 0) {
                         Component lostConnectionMessage = Component.literal("[Walkie-Talkie] ").withStyle(ChatFormatting.GREEN)
                                 .append(Component.translatable("message.walkietalkie.lost_connection", player != null ? player.getDisplayName() : "A player")
                                         .withStyle(ChatFormatting.YELLOW));
 
                         for (ServerPlayer otherPlayer : server.getPlayerList().getPlayers()) {
                             if (otherPlayer.getUUID().equals(playerUUID)) continue;
-                            if (hasWalkieTalkieWithFrequency(otherPlayer, frequency)) {
+                            if (hasConnectionWithFrequency(otherPlayer, frequency)) {
                                 if (countTotalWalkieTalkies(otherPlayer) > 1) {
                                     otherPlayer.sendSystemMessage(lostConnectionMessage.copy().append(Component.literal(" [" + frequency + "]").withStyle(ChatFormatting.GRAY)));
                                 } else {
@@ -154,7 +120,59 @@ public class ConnectionManager {
         });
     }
 
-    private static int countWalkieTalkiesWithFrequency(ServerPlayer player, String frequency) {
+    public static void refreshPlayer(ServerPlayer player) {
+        if (player == null) return;
+        UUID playerUUID = player.getUUID();
+        Set<String> currentFrequencies = collectConnectionFrequencies(player);
+        Set<String> lastFrequencies = activeFrequencies.getOrDefault(playerUUID, Set.of());
+
+        for (String frequency : lastFrequencies) {
+            if (!currentFrequencies.contains(frequency)) {
+                boolean hasTimer = disconnectionTimers.containsKey(playerUUID) && disconnectionTimers.get(playerUUID).containsKey(frequency);
+                if (!hasTimer) {
+                    playerDroppedWalkieTalkie(player, frequency);
+                }
+            }
+        }
+
+        for (String frequency : currentFrequencies) {
+            if (!lastFrequencies.contains(frequency)) {
+                playerPickedUpWalkieTalkie(player, frequency, countConnectionsWithFrequency(player, frequency));
+            }
+        }
+
+        activeFrequencies.put(playerUUID, currentFrequencies);
+    }
+
+    public static void disconnectImmediatelyIfAbsent(ServerPlayer player, String frequency) {
+        if (player == null || frequency == null || frequency.isEmpty() || hasConnectionWithFrequency(player, frequency)) return;
+        cancelDisconnect(player, frequency);
+        notifyFrequencyLeft(player, frequency);
+    }
+
+    public static boolean hasConnectionWithFrequency(ServerPlayer player, String frequency) {
+        return countConnectionsWithFrequency(player, frequency) > 0;
+    }
+
+    private static Set<String> collectConnectionFrequencies(ServerPlayer player) {
+        Set<String> frequencies = new HashSet<>();
+        WalkieBlockRegistry.addOwnedFrequencies(player.getUUID(), frequencies);
+        for (ItemStack stack : player.getInventory().items) {
+            if (stack.getItem() instanceof WalkieTalkieItem) {
+                String frequency = WalkieTalkieItem.getFrequency(stack);
+                if (!frequency.isEmpty()) frequencies.add(frequency);
+            }
+        }
+        for (ItemStack stack : player.getInventory().offhand) {
+            if (stack.getItem() instanceof WalkieTalkieItem) {
+                String frequency = WalkieTalkieItem.getFrequency(stack);
+                if (!frequency.isEmpty()) frequencies.add(frequency);
+            }
+        }
+        return frequencies;
+    }
+
+    private static int countConnectionsWithFrequency(ServerPlayer player, String frequency) {
         int count = 0;
         for (ItemStack stack : player.getInventory().items) {
             if (stack.getItem() instanceof WalkieTalkieItem && frequency.equals(WalkieTalkieItem.getFrequency(stack))) {
@@ -166,21 +184,22 @@ public class ConnectionManager {
                 count++;
             }
         }
+        if (WalkieBlockRegistry.hasOwnedFrequency(player.getUUID(), frequency)) {
+            count++;
+        }
         return count;
     }
 
-    private static boolean hasWalkieTalkieWithFrequency(ServerPlayer player, String frequency) {
-        for (ItemStack stack : player.getInventory().items) {
-            if (stack.getItem() instanceof WalkieTalkieItem && frequency.equals(WalkieTalkieItem.getFrequency(stack))) {
-                return true;
+    private static void notifyFrequencyLeft(ServerPlayer player, String frequency) {
+        Component leaveMessage = Component.literal("[Walkie-Talkie] ").withStyle(ChatFormatting.GREEN)
+            .append(Component.translatable("message.walkietalkie.leave.other", player.getDisplayName()).withStyle(ChatFormatting.YELLOW));
+        for (ServerPlayer otherPlayer : player.server.getPlayerList().getPlayers()) {
+            if (otherPlayer != player && hasConnectionWithFrequency(otherPlayer, frequency)) {
+                otherPlayer.sendSystemMessage(countTotalWalkieTalkies(otherPlayer) > 1
+                    ? leaveMessage.copy().append(Component.literal(" [" + frequency + "]").withStyle(ChatFormatting.GRAY))
+                    : leaveMessage);
             }
         }
-        for (ItemStack stack : player.getInventory().offhand) {
-            if (stack.getItem() instanceof WalkieTalkieItem && frequency.equals(WalkieTalkieItem.getFrequency(stack))) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private static int countTotalWalkieTalkies(ServerPlayer player) {
@@ -195,6 +214,9 @@ public class ConnectionManager {
                 count++;
             }
         }
+        Set<String> ownedFrequencies = new HashSet<>();
+        WalkieBlockRegistry.addOwnedFrequencies(player.getUUID(), ownedFrequencies);
+        count += ownedFrequencies.size();
         return count;
     }
 }

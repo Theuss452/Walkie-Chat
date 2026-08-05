@@ -15,34 +15,57 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class WalkieBlockRegistry {
     private static final Map<String, Set<GlobalPos>> BY_FREQUENCY = new ConcurrentHashMap<>();
+    private static final Map<UUID, Map<String, Set<GlobalPos>>> BY_OWNER = new ConcurrentHashMap<>();
 
     private WalkieBlockRegistry() {
     }
 
-    public static void register(ServerLevel level, BlockPos pos, String frequency) {
+    public static void register(ServerLevel level, BlockPos pos, String frequency, UUID owner) {
         String safeFrequency = WalkieFrequency.sanitize(frequency);
         if (level == null || pos == null || safeFrequency.isEmpty()) return;
-        BY_FREQUENCY.computeIfAbsent(safeFrequency, key -> ConcurrentHashMap.newKeySet())
-            .add(GlobalPos.of(level.dimension(), pos));
+        GlobalPos globalPos = GlobalPos.of(level.dimension(), pos);
+        BY_FREQUENCY.computeIfAbsent(safeFrequency, key -> ConcurrentHashMap.newKeySet()).add(globalPos);
+        if (owner != null) {
+            BY_OWNER.computeIfAbsent(owner, key -> new ConcurrentHashMap<>())
+                .computeIfAbsent(safeFrequency, key -> ConcurrentHashMap.newKeySet())
+                .add(globalPos);
+        }
     }
 
-    public static void unregister(ServerLevel level, BlockPos pos, String frequency) {
+    public static void unregister(ServerLevel level, BlockPos pos, String frequency, UUID owner) {
         if (level == null) return;
-        unregister(level.dimension(), pos, frequency);
+        unregister(level.dimension(), pos, frequency, owner);
     }
 
-    public static void unregister(ResourceKey<Level> dimension, BlockPos pos, String frequency) {
+    public static void unregister(ResourceKey<Level> dimension, BlockPos pos, String frequency, UUID owner) {
         String safeFrequency = WalkieFrequency.sanitize(frequency);
         if (dimension == null || pos == null || safeFrequency.isEmpty()) return;
+        GlobalPos globalPos = GlobalPos.of(dimension, pos);
         Set<GlobalPos> set = BY_FREQUENCY.get(safeFrequency);
-        if (set == null) return;
-        set.remove(GlobalPos.of(dimension, pos));
-        if (set.isEmpty()) {
-            BY_FREQUENCY.remove(safeFrequency);
+        if (set != null) {
+            set.remove(globalPos);
+            if (set.isEmpty()) {
+                BY_FREQUENCY.remove(safeFrequency);
+            }
+        }
+        if (owner != null) {
+            Map<String, Set<GlobalPos>> ownerFrequencies = BY_OWNER.get(owner);
+            if (ownerFrequencies == null) return;
+            Set<GlobalPos> ownerBlocks = ownerFrequencies.get(safeFrequency);
+            if (ownerBlocks != null) {
+                ownerBlocks.remove(globalPos);
+                if (ownerBlocks.isEmpty()) {
+                    ownerFrequencies.remove(safeFrequency);
+                }
+            }
+            if (ownerFrequencies.isEmpty()) {
+                BY_OWNER.remove(owner);
+            }
         }
     }
 
@@ -106,8 +129,21 @@ public final class WalkieBlockRegistry {
         return Set.copyOf(BY_FREQUENCY.keySet());
     }
 
+    public static void addOwnedFrequencies(UUID owner, Set<String> destination) {
+        if (owner == null || destination == null) return;
+        Map<String, Set<GlobalPos>> frequencies = BY_OWNER.get(owner);
+        if (frequencies != null) destination.addAll(frequencies.keySet());
+    }
+
+    public static boolean hasOwnedFrequency(UUID owner, String frequency) {
+        if (owner == null || frequency == null || frequency.isEmpty()) return false;
+        Map<String, Set<GlobalPos>> frequencies = BY_OWNER.get(owner);
+        return frequencies != null && frequencies.containsKey(frequency);
+    }
+
     public static void clearOnStop() {
         BY_FREQUENCY.clear();
+        BY_OWNER.clear();
     }
 
     private static boolean isActiveBlock(ServerLevel level, BlockPos pos, String frequency) {

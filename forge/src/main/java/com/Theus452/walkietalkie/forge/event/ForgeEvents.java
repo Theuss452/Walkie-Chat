@@ -57,6 +57,11 @@ public class ForgeEvents {
                 WalkieMessageHelper.broadcastMessage(server, sender, frequency, event.getRawText());
             }
         } else {
+            WalkieTalkieBlockEntity nearbyWalkie = WalkieMessageHelper.findNearbyActiveBlock(sender);
+            if (nearbyWalkie != null) {
+                WalkieMessageHelper.broadcastMessage(server, sender, nearbyWalkie.getFrequency(), event.getRawText());
+                return;
+            }
             Component formattedMessage = Component.translatable("chat.type.text", sender.getDisplayName(), Component.literal(event.getRawText()));
             double currentChatRange = Platform.getHelper().getChatRange();
             int recipientsFound = 0;

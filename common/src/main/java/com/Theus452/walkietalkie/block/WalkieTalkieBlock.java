@@ -3,6 +3,7 @@ package com.Theus452.walkietalkie.block;
 import com.Theus452.walkietalkie.item.ModItems;
 import com.Theus452.walkietalkie.item.WalkieTalkieItem;
 import com.Theus452.walkietalkie.sound.ModSounds;
+import com.Theus452.walkietalkie.util.ConnectionManager;
 import com.Theus452.walkietalkie.util.WalkieSecurity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -198,10 +199,14 @@ public class WalkieTalkieBlock extends BaseEntityBlock {
 
     @Override
     public void setPlacedBy(Level level, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack stack) {
-        if (!level.isClientSide && placer instanceof Player player) {
+        if (!level.isClientSide && placer instanceof ServerPlayer player) {
             BlockEntity be = level.getBlockEntity(pos);
             if (be instanceof WalkieTalkieBlockEntity walkieBE) {
                 applyStackDataToBlock(walkieBE, stack, player);
+                String freq = walkieBE.getFrequency();
+                if (!freq.isEmpty()) {
+                    ConnectionManager.onPlayerPlacedWalkieBlock(player, freq);
+                }
             }
         }
     }

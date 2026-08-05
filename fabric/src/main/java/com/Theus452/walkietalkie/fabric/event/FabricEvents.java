@@ -40,6 +40,11 @@ public class FabricEvents {
                     WalkieMessageHelper.broadcastMessage(server, sender, frequency, message.signedContent());
                 }
             } else {
+                WalkieTalkieBlockEntity nearbyWalkie = WalkieMessageHelper.findNearbyActiveBlock(sender);
+                if (nearbyWalkie != null) {
+                    WalkieMessageHelper.broadcastMessage(server, sender, nearbyWalkie.getFrequency(), message.signedContent());
+                    return false;
+                }
                 Component formattedMessage = Component.translatable("chat.type.text", sender.getDisplayName(), Component.literal(message.signedContent()));
                 double currentChatRange = Platform.getHelper().getChatRange();
                 int recipientsFound = 0;

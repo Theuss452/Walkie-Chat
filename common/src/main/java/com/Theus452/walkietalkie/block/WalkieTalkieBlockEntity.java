@@ -3,10 +3,13 @@ package com.Theus452.walkietalkie.block;
 import com.Theus452.walkietalkie.networking.WalkieBlockRegistry;
 import com.Theus452.walkietalkie.sound.ModSounds;
 import com.Theus452.walkietalkie.util.SafeNbt;
+import com.Theus452.walkietalkie.util.WalkieBlockMessageRelay;
 import com.Theus452.walkietalkie.util.WalkieFrequency;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientboundSoundPacket;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.resources.ResourceKey;
@@ -20,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -43,6 +47,7 @@ public class WalkieTalkieBlockEntity extends BlockEntity {
     private int decoyTicks = 0;
     private boolean repeater = false;
     private boolean relayEnabled = true;
+    private long lastProcessedRelaySequence;
 
     public WalkieTalkieBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlocks.WALKIE_TALKIE_BLOCK_ENTITY.get(), pos, state);
@@ -85,6 +90,12 @@ public class WalkieTalkieBlockEntity extends BlockEntity {
     }
 
     @Override
+    public void setLevel(Level level) {
+        super.setLevel(level);
+        registerIfNeeded();
+    }
+
+    @Override
     public void setRemoved() {
         unregisterIfNeeded();
         super.setRemoved();
@@ -95,9 +106,22 @@ public class WalkieTalkieBlockEntity extends BlockEntity {
         setChanged();
     }
 
-    public void playReceiveSound() {
-        if (level != null) {
-            level.playSound(null, worldPosition, ModSounds.WALKIE_TALKIE_MSG_RECEIVER.get(), SoundSource.BLOCKS, 1.0F, 1.0F);
+    public void playReceiveSound(Collection<ServerPlayer> listeners) {
+        if (!(level instanceof ServerLevel serverLevel) || listeners == null || listeners.isEmpty() || ModSounds.WALKIE_TALKIE_MSG_RECEIVER == null) {
+            return;
+        }
+        ClientboundSoundPacket soundPacket = new ClientboundSoundPacket(
+            Holder.direct(ModSounds.WALKIE_TALKIE_MSG_RECEIVER.get()),
+            SoundSource.BLOCKS,
+            worldPosition.getX() + 0.5D,
+            worldPosition.getY() + 0.5D,
+            worldPosition.getZ() + 0.5D,
+            1.0F,
+            1.0F,
+            serverLevel.random.nextLong()
+        );
+        for (ServerPlayer listener : listeners) {
+            listener.connection.send(soundPacket);
         }
     }
 
@@ -113,6 +137,9 @@ public class WalkieTalkieBlockEntity extends BlockEntity {
             this.ownerUUID = SafeNbt.uuidOrNull(nbt, NBT_OWNER);
             this.repeater = SafeNbt.bool(nbt, NBT_REPEATER, false);
             this.relayEnabled = SafeNbt.bool(nbt, NBT_RELAY_ENABLED, true);
+            this.registeredInNetwork = false;
+            this.registeredDimension = null;
+            registerIfNeeded();
         } catch (RuntimeException exception) {
             LOGGER.debug("Recovered Walkie block entity from malformed NBT at {}.", worldPosition, exception);
             this.frequency = "";
@@ -149,8 +176,9 @@ public class WalkieTalkieBlockEntity extends BlockEntity {
     }
 
     public static void serverTick(Level level, BlockPos pos, BlockState state, WalkieTalkieBlockEntity blockEntity) {
-        if (level == null || level.isClientSide() || !(level instanceof ServerLevel)) return;
+        if (level == null || level.isClientSide() || !(level instanceof ServerLevel serverLevel)) return;
         blockEntity.registerIfNeeded();
+        blockEntity.lastProcessedRelaySequence = WalkieBlockMessageRelay.deliver(blockEntity, serverLevel, blockEntity.lastProcessedRelaySequence);
         if (blockEntity.decoyTicks > 0) {
             blockEntity.decoyTicks--;
             if (blockEntity.decoyTicks == 0) {
@@ -175,7 +203,10 @@ public class WalkieTalkieBlockEntity extends BlockEntity {
     }
 
     public void setOwnerUUID(UUID ownerUUID) {
+        if (java.util.Objects.equals(this.ownerUUID, ownerUUID)) return;
+        unregisterIfNeeded();
         this.ownerUUID = ownerUUID;
+        registerIfNeeded();
         markDirtyAndSync();
     }
 
@@ -212,7 +243,7 @@ public class WalkieTalkieBlockEntity extends BlockEntity {
         if (registeredInNetwork || frequency.isEmpty() || !(level instanceof ServerLevel serverLevel)) {
             return;
         }
-        WalkieBlockRegistry.register(serverLevel, worldPosition, frequency);
+        WalkieBlockRegistry.register(serverLevel, worldPosition, frequency, ownerUUID);
         registeredInNetwork = true;
         registeredDimension = serverLevel.dimension();
     }
@@ -224,9 +255,9 @@ public class WalkieTalkieBlockEntity extends BlockEntity {
         }
         if (!frequency.isEmpty()) {
             if (level instanceof ServerLevel serverLevel) {
-                WalkieBlockRegistry.unregister(serverLevel, worldPosition, frequency);
+                WalkieBlockRegistry.unregister(serverLevel, worldPosition, frequency, ownerUUID);
             } else if (registeredDimension != null) {
-                WalkieBlockRegistry.unregister(registeredDimension, worldPosition, frequency);
+                WalkieBlockRegistry.unregister(registeredDimension, worldPosition, frequency, ownerUUID);
             }
         }
         registeredInNetwork = false;
