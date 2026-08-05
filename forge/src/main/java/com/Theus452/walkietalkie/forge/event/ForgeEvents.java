@@ -1,6 +1,7 @@
 package com.Theus452.walkietalkie.forge.event;
 
 import com.Theus452.walkietalkie.block.WalkieTalkieBlockEntity;
+import com.Theus452.walkietalkie.compat.AttractToChatCompat;
 import com.Theus452.walkietalkie.forge.commands.ForgeCommands;
 import com.Theus452.walkietalkie.item.WalkieTalkieItem;
 import com.Theus452.walkietalkie.platform.Platform;
@@ -18,6 +19,7 @@ import net.minecraftforge.event.ServerChatEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.item.ItemTossEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,9 +34,28 @@ public class ForgeEvents {
         ForgeCommands.register(dispatcher);
     }
 
-    @SubscribeEvent
-    public void onServerChat(ServerChatEvent event) {
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public void onWalkieServerChat(ServerChatEvent event) {
         ServerPlayer sender = event.getPlayer();
+        if (!isWalkieTransmissionSource(sender)) {
+            return;
+        }
+        handleServerChat(event);
+    }
+
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public void onProximityServerChat(ServerChatEvent event) {
+        handleServerChat(event);
+    }
+
+    private void handleServerChat(ServerChatEvent event) {
+        ServerPlayer sender = event.getPlayer();
+        if (AttractToChatCompat.isVocallyMuted(sender)) {
+            event.setCanceled(true);
+            sender.displayClientMessage(Component.translatable("message.walkietalkie.vocal_muted"), true);
+            return;
+        }
+
         ItemStack walkieStack = sender.getMainHandItem();
         if (!(walkieStack.getItem() instanceof WalkieTalkieItem)) {
             walkieStack = sender.getOffhandItem();
@@ -63,7 +84,8 @@ public class ForgeEvents {
                 return;
             }
             Component formattedMessage = Component.translatable("chat.type.text", sender.getDisplayName(), Component.literal(event.getRawText()));
-            double currentChatRange = Platform.getHelper().getChatRange();
+            double currentChatRange = AttractToChatCompat.getEffectiveProximityRange(
+                    event.getRawText(), Platform.getHelper().getChatRange());
             int recipientsFound = 0;
 
             for (ServerPlayer recipient : server.getPlayerList().getPlayers()) {
@@ -78,6 +100,15 @@ public class ForgeEvents {
                         .withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC));
             }
         }
+    }
+
+    private static boolean isWalkieTransmissionSource(ServerPlayer sender) {
+        ItemStack walkieStack = sender.getMainHandItem();
+        if (!(walkieStack.getItem() instanceof WalkieTalkieItem)) {
+            walkieStack = sender.getOffhandItem();
+        }
+        return walkieStack.getItem() instanceof WalkieTalkieItem
+                || WalkieMessageHelper.findNearbyActiveBlock(sender) != null;
     }
 
     @SubscribeEvent

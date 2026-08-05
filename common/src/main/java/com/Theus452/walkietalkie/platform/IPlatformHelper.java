@@ -4,4 +4,5 @@ public interface IPlatformHelper {
     
     void sendToServer(Object packet);
     double getChatRange();
+    boolean isModLoaded(String modId);
 }

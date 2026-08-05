@@ -7,6 +7,7 @@ import com.Theus452.walkietalkie.networking.packet.PacketSetFrequency;
 import com.Theus452.walkietalkie.platform.IPlatformHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.network.FriendlyByteBuf;
 
 public class FabricPlatformHelper implements IPlatformHelper {
@@ -28,5 +29,10 @@ public class FabricPlatformHelper implements IPlatformHelper {
     public double getChatRange() {
         
         return FabricModConfigs.getChatRange();
+    }
+
+    @Override
+    public boolean isModLoaded(String modId) {
+        return FabricLoader.getInstance().isModLoaded(modId);
     }
 }

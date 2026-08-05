@@ -1,6 +1,7 @@
 package com.Theus452.walkietalkie.fabric.event;
 
 import com.Theus452.walkietalkie.block.WalkieTalkieBlockEntity;
+import com.Theus452.walkietalkie.compat.AttractToChatCompat;
 import com.Theus452.walkietalkie.item.WalkieTalkieItem;
 import com.Theus452.walkietalkie.platform.Platform;
 import com.Theus452.walkietalkie.util.ConnectionManager;
@@ -20,6 +21,11 @@ public class FabricEvents {
 
     public static void register() {
         ServerMessageEvents.ALLOW_CHAT_MESSAGE.register((message, sender, typeKey) -> {
+            if (AttractToChatCompat.isVocallyMuted(sender)) {
+                sender.displayClientMessage(Component.translatable("message.walkietalkie.vocal_muted"), true);
+                return false;
+            }
+
             ItemStack walkieStack = sender.getMainHandItem();
             if (!(walkieStack.getItem() instanceof WalkieTalkieItem)) {
                 walkieStack = sender.getOffhandItem();
@@ -46,7 +52,8 @@ public class FabricEvents {
                     return false;
                 }
                 Component formattedMessage = Component.translatable("chat.type.text", sender.getDisplayName(), Component.literal(message.signedContent()));
-                double currentChatRange = Platform.getHelper().getChatRange();
+                double currentChatRange = AttractToChatCompat.getEffectiveProximityRange(
+                        message.signedContent(), Platform.getHelper().getChatRange());
                 int recipientsFound = 0;
 
                 for (ServerPlayer recipient : server.getPlayerList().getPlayers()) {

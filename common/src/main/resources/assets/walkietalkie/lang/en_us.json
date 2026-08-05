@@ -21,6 +21,7 @@
   "gui.walkietalkie.frequency.suggestion": "Enter a value (1-1000)",
   "tooltip.walkietalkie.frequency.chat": "§7Frequency: §e%s",
   "message.walkietalkie.no_one_on_frequency": "There is no one on this frequency to see your message!",
+  "message.walkietalkie.vocal_muted": "Your voice is too strained to speak on the radio.",
   "message.walkietalkie.lost_connection": "%s lost the walkie-talkie and left the frequency",
 
   "message.walkietalkie.block.not_owner": "You are not the owner of this station!",

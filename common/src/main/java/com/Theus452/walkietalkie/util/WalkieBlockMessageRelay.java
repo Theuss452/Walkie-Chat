@@ -1,6 +1,7 @@
 package com.Theus452.walkietalkie.util;
 
 import com.Theus452.walkietalkie.block.WalkieTalkieBlockEntity;
+import com.Theus452.walkietalkie.compat.AttractToChatCompat;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -50,6 +51,10 @@ public final class WalkieBlockMessageRelay {
             if (!block.getFrequency().equals(message.frequency)) continue;
             ServerPlayer sender = server.getPlayerList().getPlayer(message.senderId);
             if (sender == null) continue;
+            if (!message.attractionTriggered) {
+                message.attractionTriggered = true;
+                AttractToChatCompat.attractMobsAtBlock(sender, level, block.getBlockPos(), message.rawText);
+            }
             AABB listenerBounds = new AABB(block.getBlockPos()).inflate(8.0D);
             Collection<ServerPlayer> soundListeners = new ArrayList<>();
             double x = block.getBlockPos().getX() + 0.5D;
@@ -91,6 +96,7 @@ public final class WalkieBlockMessageRelay {
         private final String frequency;
         private final String rawText;
         private final Set<UUID> deliveredPlayers;
+        private boolean attractionTriggered;
 
         private RelayMessage(long sequence, int expiresAtTick, UUID senderId, String frequency, String rawText, Set<UUID> deliveredPlayers) {
             this.sequence = sequence;
