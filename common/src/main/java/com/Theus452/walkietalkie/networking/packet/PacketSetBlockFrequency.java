@@ -37,7 +37,6 @@ public class PacketSetBlockFrequency {
     public static void handle(PacketSetBlockFrequency packet, ServerPlayer player) {
         if (!ServerRateLimiter.allow(player, "walkietalkie:block_frequency", FREQUENCY_CHANGE_INTERVAL_TICKS)) return;
         String frequency = WalkieSecurity.sanitizeFrequency(packet.frequency);
-        if (frequency.isEmpty()) return;
         if (WalkieFrequency.isPrivate(frequency)) {
             player.sendSystemMessage(Component.translatable("message.walkietalkie.block.private_forbidden").withStyle(ChatFormatting.RED));
             return;

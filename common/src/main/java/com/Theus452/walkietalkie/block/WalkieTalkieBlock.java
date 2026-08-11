@@ -192,7 +192,7 @@ public class WalkieTalkieBlock extends BaseEntityBlock {
         }
 
         if (level.isClientSide()) {
-            ClientOnly.openBlockScreen(pos, walkieBE.getFrequency());
+            ClientOnly.openBlockScreen(pos);
         }
         return InteractionResult.sidedSuccess(level.isClientSide());
     }
@@ -279,9 +279,9 @@ public class WalkieTalkieBlock extends BaseEntityBlock {
     }
 
     private static class ClientOnly {
-        private static void openBlockScreen(BlockPos pos, String frequency) {
+        private static void openBlockScreen(BlockPos pos) {
             net.minecraft.client.Minecraft.getInstance().setScreen(
-                new com.Theus452.walkietalkie.client.WalkieTalkieBlockScreen(pos, frequency)
+                new com.Theus452.walkietalkie.item.WalkieTalkieScreen(pos)
             );
         }
     }

@@ -13,6 +13,7 @@ import com.Theus452.walkietalkie.networking.packet.PacketRenameChannel;
 import com.Theus452.walkietalkie.networking.packet.C2S_ToggleBlockRelayPacket;
 import com.Theus452.walkietalkie.networking.packet.C2S_WalkieBlockMessagePacket;
 import com.Theus452.walkietalkie.networking.packet.PacketSetBlockFrequency;
+import com.Theus452.walkietalkie.networking.packet.PacketBlockChannelAction;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.network.NetworkEvent;
@@ -22,7 +23,7 @@ import net.minecraftforge.network.simple.SimpleChannel;
 import java.util.function.Supplier;
 
 public final class ForgePacketHandler {
-    private static final String PROTOCOL_VERSION = "4";
+    private static final String PROTOCOL_VERSION = "5";
     public static final SimpleChannel INSTANCE = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(WalkieTalkieMod.MOD_ID, "main"),
             () -> PROTOCOL_VERSION,
@@ -46,7 +47,8 @@ public final class ForgePacketHandler {
         INSTANCE.registerMessage(id++, PacketRenameChannel.class, PacketRenameChannel::toBytes, PacketRenameChannel::new, ForgePacketHandler::handleRenameChannel);
         INSTANCE.registerMessage(id++, C2S_WalkieBlockMessagePacket.class, C2S_WalkieBlockMessagePacket::toBytes, C2S_WalkieBlockMessagePacket::new, ForgePacketHandler::handleWalkieBlockMessage);
         INSTANCE.registerMessage(id++, PacketSetBlockFrequency.class, PacketSetBlockFrequency::toBytes, PacketSetBlockFrequency::new, ForgePacketHandler::handleSetBlockFrequency);
-        INSTANCE.registerMessage(id, C2S_ToggleBlockRelayPacket.class, C2S_ToggleBlockRelayPacket::toBytes, C2S_ToggleBlockRelayPacket::new, ForgePacketHandler::handleToggleBlockRelay);
+        INSTANCE.registerMessage(id++, C2S_ToggleBlockRelayPacket.class, C2S_ToggleBlockRelayPacket::toBytes, C2S_ToggleBlockRelayPacket::new, ForgePacketHandler::handleToggleBlockRelay);
+        INSTANCE.registerMessage(id, PacketBlockChannelAction.class, PacketBlockChannelAction::toBytes, PacketBlockChannelAction::new, ForgePacketHandler::handleBlockChannelAction);
     }
 
     private static void handleSetFrequency(PacketSetFrequency packet, Supplier<NetworkEvent.Context> contextSupplier) {
@@ -148,6 +150,12 @@ public final class ForgePacketHandler {
     private static void handleToggleBlockRelay(C2S_ToggleBlockRelayPacket packet, Supplier<NetworkEvent.Context> contextSupplier) {
         NetworkEvent.Context context = contextSupplier.get();
         context.enqueueWork(() -> C2S_ToggleBlockRelayPacket.handle(packet, context.getSender()));
+        context.setPacketHandled(true);
+    }
+
+    private static void handleBlockChannelAction(PacketBlockChannelAction packet, Supplier<NetworkEvent.Context> contextSupplier) {
+        NetworkEvent.Context context = contextSupplier.get();
+        context.enqueueWork(() -> PacketBlockChannelAction.handle(packet, context.getSender()));
         context.setPacketHandled(true);
     }
 }

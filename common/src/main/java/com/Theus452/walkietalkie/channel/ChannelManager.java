@@ -1,12 +1,14 @@
 package com.Theus452.walkietalkie.channel;
 
 import com.Theus452.walkietalkie.item.WalkieTalkieItem;
+import com.Theus452.walkietalkie.block.WalkieTalkieBlockEntity;
 import com.Theus452.walkietalkie.networking.WalkieNetworkHandler;
 import com.Theus452.walkietalkie.networking.packet.ChannelActionType;
 import com.Theus452.walkietalkie.sound.ModSounds;
 import com.Theus452.walkietalkie.util.ConnectionManager;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundSource;
@@ -130,6 +132,92 @@ public final class ChannelManager {
         String oldFrequency = WalkieTalkieItem.getFrequency(stack);
         if (!oldFrequency.isEmpty()) {
             tune(player, hand, "");
+        }
+        sendResult(player, true, "", "gui.walkietalkie.success.left", ChannelActionType.LEAVE, requestId);
+        ConnectionManager.syncActiveChannels(player.server);
+    }
+
+    public static void createBlockChannel(
+            ServerPlayer player,
+            BlockPos pos,
+            String rawFrequency,
+            String rawName,
+            long requestId
+    ) {
+        WalkieTalkieBlockEntity block = getControllableBlock(player, pos, ChannelActionType.CREATE, requestId);
+        if (block == null) {
+            return;
+        }
+        String frequency = normalizeFrequency(rawFrequency);
+        String name = normalizeName(rawName);
+        if (!isValidFrequency(frequency)) {
+            sendResult(player, false, "", "gui.walkietalkie.error.frequency", ChannelActionType.CREATE, requestId);
+            return;
+        }
+        if (!isValidName(name)) {
+            sendResult(player, false, "", "gui.walkietalkie.error.name", ChannelActionType.CREATE, requestId);
+            return;
+        }
+        ChannelRegistry registry = ChannelRegistry.get(player.server);
+        if (registry.getChannel(frequency) != null) {
+            sendResult(player, false, "", "gui.walkietalkie.error.frequency_used", ChannelActionType.CREATE, requestId);
+            return;
+        }
+        for (ChannelRegistry.ChannelDefinition definition : registry.getChannels()) {
+            if (definition.name().equalsIgnoreCase(name)) {
+                sendResult(player, false, "", "gui.walkietalkie.error.name_used", ChannelActionType.CREATE, requestId);
+                return;
+            }
+        }
+        ChannelRegistry.ChannelDefinition definition = registry.create(
+                frequency,
+                name,
+                player.getUUID(),
+                player.getDisplayName().getString(),
+                false,
+                ""
+        );
+        if (definition == null) {
+            sendResult(player, false, "", "gui.walkietalkie.error.frequency_used", ChannelActionType.CREATE, requestId);
+            return;
+        }
+        tuneBlock(player, block, frequency, definition.name());
+        sendResult(player, true, frequency, "gui.walkietalkie.success.created", ChannelActionType.CREATE, requestId);
+        ConnectionManager.syncActiveChannels(player.server);
+    }
+
+    public static void joinBlockChannel(ServerPlayer player, BlockPos pos, String rawFrequency, long requestId) {
+        WalkieTalkieBlockEntity block = getControllableBlock(player, pos, ChannelActionType.JOIN, requestId);
+        if (block == null) {
+            return;
+        }
+        String frequency = normalizeFrequency(rawFrequency);
+        if (!isValidFrequency(frequency)) {
+            sendResult(player, false, "", "gui.walkietalkie.error.frequency", ChannelActionType.JOIN, requestId);
+            return;
+        }
+        ChannelRegistry.ChannelDefinition definition = ChannelRegistry.get(player.server).getChannel(frequency);
+        if (definition == null) {
+            sendResult(player, false, "", "gui.walkietalkie.error.channel_not_found", ChannelActionType.JOIN, requestId);
+            return;
+        }
+        if (definition.passwordProtected()) {
+            sendResult(player, false, "", "message.walkietalkie.block.private_forbidden", ChannelActionType.JOIN, requestId);
+            return;
+        }
+        tuneBlock(player, block, frequency, definition.name());
+        sendResult(player, true, frequency, "gui.walkietalkie.success.joined", ChannelActionType.JOIN, requestId);
+        ConnectionManager.syncActiveChannels(player.server);
+    }
+
+    public static void leaveBlockChannel(ServerPlayer player, BlockPos pos, long requestId) {
+        WalkieTalkieBlockEntity block = getControllableBlock(player, pos, ChannelActionType.LEAVE, requestId);
+        if (block == null) {
+            return;
+        }
+        if (!block.getFrequency().isEmpty()) {
+            block.setFrequency("");
+            block.setChannelName("");
         }
         sendResult(player, true, "", "gui.walkietalkie.success.left", ChannelActionType.LEAVE, requestId);
         ConnectionManager.syncActiveChannels(player.server);
@@ -380,6 +468,32 @@ public final class ChannelManager {
             }
         }
         return false;
+    }
+
+    private static WalkieTalkieBlockEntity getControllableBlock(
+            ServerPlayer player,
+            BlockPos pos,
+            ChannelActionType actionType,
+            long requestId
+    ) {
+        com.Theus452.walkietalkie.block.WalkieTalkieBlockEntity block = com.Theus452.walkietalkie.util.WalkieSecurity.interactableWalkieBlock(player, pos);
+        if (block == null) {
+            sendResult(player, false, "", "gui.walkietalkie.error.item", actionType, requestId);
+            return null;
+        }
+        if (!com.Theus452.walkietalkie.util.WalkieSecurity.canControlWalkieBlock(player, block)) {
+            sendResult(player, false, "", "message.walkietalkie.block.not_owner", actionType, requestId);
+            return null;
+        }
+        return block;
+    }
+
+    private static void tuneBlock(ServerPlayer player, WalkieTalkieBlockEntity block, String frequency, String name) {
+        if (block.ownerUUID == null) {
+            block.setOwnerUUID(player.getUUID());
+        }
+        block.setFrequency(frequency);
+        block.setChannelName(name);
     }
 
     private static void sendResult(

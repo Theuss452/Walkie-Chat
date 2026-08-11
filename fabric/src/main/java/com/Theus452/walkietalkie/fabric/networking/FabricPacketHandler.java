@@ -10,6 +10,7 @@ import com.Theus452.walkietalkie.networking.packet.PacketRenameChannel;
 import com.Theus452.walkietalkie.networking.packet.C2S_ToggleBlockRelayPacket;
 import com.Theus452.walkietalkie.networking.packet.C2S_WalkieBlockMessagePacket;
 import com.Theus452.walkietalkie.networking.packet.PacketSetBlockFrequency;
+import com.Theus452.walkietalkie.networking.packet.PacketBlockChannelAction;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.resources.ResourceLocation;
 
@@ -26,6 +27,7 @@ public final class FabricPacketHandler {
     public static final ResourceLocation WALKIE_BLOCK_MESSAGE_ID = new ResourceLocation(WalkieTalkieMod.MOD_ID, "walkie_block_message");
     public static final ResourceLocation SET_BLOCK_FREQUENCY_ID = new ResourceLocation(WalkieTalkieMod.MOD_ID, "set_block_frequency");
     public static final ResourceLocation TOGGLE_BLOCK_RELAY_ID = new ResourceLocation(WalkieTalkieMod.MOD_ID, "toggle_block_relay");
+    public static final ResourceLocation BLOCK_CHANNEL_ACTION_ID = new ResourceLocation(WalkieTalkieMod.MOD_ID, "block_channel_action");
 
     public static void registerC2SPackets() {
         ServerPlayNetworking.registerGlobalReceiver(SET_FREQUENCY_ID, (server, player, handler, buf, responseSender) -> {
@@ -63,6 +65,10 @@ public final class FabricPacketHandler {
         ServerPlayNetworking.registerGlobalReceiver(TOGGLE_BLOCK_RELAY_ID, (server, player, handler, buf, responseSender) -> {
             C2S_ToggleBlockRelayPacket packet = new C2S_ToggleBlockRelayPacket(buf);
             server.execute(() -> C2S_ToggleBlockRelayPacket.handle(packet, player));
+        });
+        ServerPlayNetworking.registerGlobalReceiver(BLOCK_CHANNEL_ACTION_ID, (server, player, handler, buf, responseSender) -> {
+            PacketBlockChannelAction packet = new PacketBlockChannelAction(buf);
+            server.execute(() -> PacketBlockChannelAction.handle(packet, player));
         });
     }
 }

@@ -10,8 +10,13 @@ import com.Theus452.walkietalkie.networking.packet.PacketRequestChannels;
 import com.Theus452.walkietalkie.networking.packet.PacketSetFrequency;
 import com.Theus452.walkietalkie.networking.packet.PacketSyncChannels;
 import com.Theus452.walkietalkie.networking.packet.PacketKickPlayer;
+import com.Theus452.walkietalkie.networking.packet.PacketBlockChannelAction;
+import com.Theus452.walkietalkie.networking.packet.C2S_WalkieBlockMessagePacket;
 import com.Theus452.walkietalkie.platform.Platform;
 import com.Theus452.walkietalkie.sound.ModSounds;
+import com.Theus452.walkietalkie.block.WalkieTalkieBlockEntity;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
@@ -70,6 +75,7 @@ public final class WalkieTalkieScreen extends Screen {
     private boolean showCreatePassword = false;
 
     private final InteractionHand hand;
+    private final BlockPos blockPos;
     private final List<FormattedCharSequence> cachedLines = new ArrayList<>();
     private final List<Boolean> cachedIsMine = new ArrayList<>();
     private Tab currentTab = Tab.CREATE;
@@ -104,6 +110,13 @@ public final class WalkieTalkieScreen extends Screen {
     public WalkieTalkieScreen(InteractionHand hand) {
         super(Component.translatable("gui.walkietalkie.title"));
         this.hand = hand;
+        this.blockPos = null;
+    }
+
+    public WalkieTalkieScreen(BlockPos blockPos) {
+        super(Component.translatable("gui.walkietalkie.title"));
+        this.hand = InteractionHand.MAIN_HAND;
+        this.blockPos = blockPos == null ? BlockPos.ZERO : blockPos.immutable();
     }
 
     @Override
@@ -122,9 +135,9 @@ public final class WalkieTalkieScreen extends Screen {
 
         if (minecraft != null && minecraft.player != null) {
             myName = minecraft.player.getName().getString();
-            ItemStack stack = minecraft.player.getItemInHand(hand);
-            if (stack.getItem() instanceof WalkieTalkieItem) {
-                currentFrequency = WalkieTalkieItem.getFrequency(stack);
+            String sourceFrequency = isBlockMode() ? blockFrequency() : itemFrequency();
+            if (isBlockMode() || !sourceFrequency.isEmpty()) {
+                currentFrequency = sourceFrequency;
                 active = !currentFrequency.isEmpty();
                 if (active) {
                     currentTab = Tab.CHAT;
@@ -1059,7 +1072,11 @@ public final class WalkieTalkieScreen extends Screen {
 
     private void performJoinQuickFrequency(String frequency) {
         long requestId = beginAction(ChannelActionType.JOIN);
-        Platform.getHelper().sendToServer(new PacketJoinChannel(frequency, "", hand, requestId));
+        if (isBlockMode()) {
+            Platform.getHelper().sendToServer(new PacketBlockChannelAction(blockPos, ChannelActionType.JOIN, frequency, "", requestId));
+        } else {
+            Platform.getHelper().sendToServer(new PacketJoinChannel(frequency, "", hand, requestId));
+        }
         playSfx(ModSounds.WALKIE_TALKIE_CHANGE_CHANNEL.get(), 1.0F);
     }
 
@@ -1085,9 +1102,22 @@ public final class WalkieTalkieScreen extends Screen {
     }
 
     private void performJoinSelectedChannel(String password) {
+        if (isBlockMode() && selectedChannel.passwordProtected()) {
+            showStatus("message.walkietalkie.block.private_forbidden", false);
+            return;
+        }
         long requestId = beginAction(ChannelActionType.JOIN);
-        Platform.getHelper().sendToServer(
-                new PacketJoinChannel(selectedChannel.frequency(), password, hand, requestId));
+        if (isBlockMode()) {
+            Platform.getHelper().sendToServer(new PacketBlockChannelAction(
+                    blockPos,
+                    ChannelActionType.JOIN,
+                    selectedChannel.frequency(),
+                    "",
+                    requestId));
+        } else {
+            Platform.getHelper().sendToServer(
+                    new PacketJoinChannel(selectedChannel.frequency(), password, hand, requestId));
+        }
         playSfx(ModSounds.WALKIE_TALKIE_CHANGE_CHANNEL.get(), 1.0F);
     }
 
@@ -1106,9 +1136,22 @@ public final class WalkieTalkieScreen extends Screen {
             showStatus("gui.walkietalkie.error.form", false);
             return;
         }
+        if (isBlockMode() && privateChannel) {
+            showStatus("message.walkietalkie.block.private_forbidden", false);
+            return;
+        }
         long requestId = beginAction(ChannelActionType.CREATE);
-        Platform.getHelper().sendToServer(
-                new PacketCreateChannel(frequency, name, privateChannel, password, hand, requestId));
+        if (isBlockMode()) {
+            Platform.getHelper().sendToServer(new PacketBlockChannelAction(
+                    blockPos,
+                    ChannelActionType.CREATE,
+                    frequency,
+                    name,
+                    requestId));
+        } else {
+            Platform.getHelper().sendToServer(
+                    new PacketCreateChannel(frequency, name, privateChannel, password, hand, requestId));
+        }
         playSfx(ModSounds.WALKIE_TALKIE_BUTTON_CLICK.get(), 1.0F);
     }
 
@@ -1117,14 +1160,27 @@ public final class WalkieTalkieScreen extends Screen {
             return;
         }
         long requestId = beginAction(ChannelActionType.LEAVE);
-        Platform.getHelper().sendToServer(new PacketSetFrequency("", hand, requestId));
+        if (isBlockMode()) {
+            Platform.getHelper().sendToServer(new PacketBlockChannelAction(
+                    blockPos,
+                    ChannelActionType.LEAVE,
+                    "",
+                    "",
+                    requestId));
+        } else {
+            Platform.getHelper().sendToServer(new PacketSetFrequency("", hand, requestId));
+        }
         playSfx(ModSounds.WALKIE_TALKIE_CHANGE_CHANNEL.get(), 1.0F);
     }
 
     private void sendChatMessage() {
         String message = chatInput.getValue().trim();
         if (!message.isEmpty() && minecraft != null && minecraft.player != null) {
-            minecraft.player.connection.sendChat(message);
+            if (isBlockMode()) {
+                Platform.getHelper().sendToServer(new C2S_WalkieBlockMessagePacket(blockPos, currentFrequency, message));
+            } else {
+                minecraft.player.connection.sendChat(message);
+            }
             chatInput.setValue("");
         }
     }
@@ -1181,10 +1237,7 @@ public final class WalkieTalkieScreen extends Screen {
         if (minecraft == null || minecraft.player == null) {
             return;
         }
-        ItemStack stack = minecraft.player.getItemInHand(hand);
-        String heldFrequency = stack.getItem() instanceof WalkieTalkieItem
-                ? WalkieTalkieItem.getFrequency(stack)
-                : "";
+        String heldFrequency = isBlockMode() ? blockFrequency() : itemFrequency();
         if (active && heldFrequency.isEmpty() && pendingAction == null) {
             currentFrequency = "";
             active = false;
@@ -1195,6 +1248,26 @@ public final class WalkieTalkieScreen extends Screen {
             focusInput(quickFrequencyInput);
             Platform.getHelper().sendToServer(new PacketRequestChannels());
         }
+    }
+
+    private boolean isBlockMode() {
+        return blockPos != null;
+    }
+
+    private String itemFrequency() {
+        if (minecraft == null || minecraft.player == null) {
+            return "";
+        }
+        ItemStack stack = minecraft.player.getItemInHand(hand);
+        return stack.getItem() instanceof WalkieTalkieItem ? WalkieTalkieItem.getFrequency(stack) : "";
+    }
+
+    private String blockFrequency() {
+        if (minecraft == null || minecraft.level == null || blockPos == null) {
+            return "";
+        }
+        BlockEntity blockEntity = minecraft.level.getBlockEntity(blockPos);
+        return blockEntity instanceof WalkieTalkieBlockEntity walkieBlock ? walkieBlock.getFrequency() : "";
     }
 
     private void showStatus(String messageKey, boolean success) {

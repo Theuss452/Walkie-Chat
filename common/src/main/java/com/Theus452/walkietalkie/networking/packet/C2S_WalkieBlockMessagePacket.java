@@ -2,8 +2,8 @@ package com.Theus452.walkietalkie.networking.packet;
 
 import com.Theus452.walkietalkie.block.WalkieTalkieBlockEntity;
 import com.Theus452.walkietalkie.util.ServerRateLimiter;
-import com.Theus452.walkietalkie.util.WalkieFrequency;
 import com.Theus452.walkietalkie.util.WalkieSecurity;
+import com.Theus452.walkietalkie.util.WalkieMessageHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
@@ -33,14 +33,12 @@ public class C2S_WalkieBlockMessagePacket {
 
     public static void handle(C2S_WalkieBlockMessagePacket packet, ServerPlayer player) {
         if (!WalkieSecurity.isUsablePlayer(player)) return;
-        String frequency = WalkieSecurity.sanitizeFrequency(packet.frequency);
         String message = WalkieSecurity.sanitizeMessage(packet.message);
-        if (frequency.isEmpty() || message.isEmpty()) return;
-        if (WalkieFrequency.isPrivate(frequency)) return;
+        if (message.isEmpty()) return;
 
         WalkieTalkieBlockEntity blockEntity = WalkieSecurity.interactableWalkieBlock(player, packet.pos);
         if (blockEntity == null || !blockEntity.isActive() || !blockEntity.isRelayEnabled()) return;
-        if (!frequency.equals(blockEntity.getFrequency())) return;
         if (!ServerRateLimiter.allow(player, "walkietalkie:message_block", 5L)) return;
+        WalkieMessageHelper.broadcastMessage(player.server, player, blockEntity.getFrequency(), message);
     }
 }
