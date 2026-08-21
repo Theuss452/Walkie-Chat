@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import com.Theus452.walkietalkie.networking.WalkieBlockRegistry;
 import com.Theus452.walkietalkie.util.ConnectionManager;
 
 public final class ChannelRegistry extends SavedData {
@@ -159,6 +160,9 @@ public final class ChannelRegistry extends SavedData {
                 removed = true;
             }
             if (removed) {
+                if (definition.members().isEmpty() && !WalkieBlockRegistry.hasFrequency(frequency)) {
+                    channels.remove(frequency);
+                }
                 setDirty();
                 ConnectionManager.syncActiveChannels(server);
             }

@@ -68,6 +68,9 @@ public class WalkieTalkieBlockEntity extends BlockEntity {
         unregisterIfNeeded();
         this.frequency = sanitized;
         this.channelName = "";
+        if (ownerUUID != null && !this.frequency.isEmpty()) {
+            WalkieBlockRegistry.clearRevocation(ownerUUID, this.frequency);
+        }
         registerIfNeeded();
         markDirtyAndSync();
     }
@@ -135,6 +138,10 @@ public class WalkieTalkieBlockEntity extends BlockEntity {
             }
             this.channelName = WalkieFrequency.sanitizeChannelName(SafeNbt.string(nbt, NBT_CHANNEL_NAME, "", 20));
             this.ownerUUID = SafeNbt.uuidOrNull(nbt, NBT_OWNER);
+            if (this.ownerUUID != null && !this.frequency.isEmpty() && WalkieBlockRegistry.isRevoked(this.ownerUUID, this.frequency)) {
+                this.frequency = "";
+                this.channelName = "";
+            }
             this.repeater = SafeNbt.bool(nbt, NBT_REPEATER, false);
             this.relayEnabled = SafeNbt.bool(nbt, NBT_RELAY_ENABLED, true);
             this.registeredInNetwork = false;
@@ -241,6 +248,12 @@ public class WalkieTalkieBlockEntity extends BlockEntity {
 
     private void registerIfNeeded() {
         if (registeredInNetwork || frequency.isEmpty() || !(level instanceof ServerLevel serverLevel)) {
+            return;
+        }
+        if (ownerUUID != null && WalkieBlockRegistry.isRevoked(ownerUUID, frequency)) {
+            this.frequency = "";
+            this.channelName = "";
+            markDirtyAndSync();
             return;
         }
         WalkieBlockRegistry.register(serverLevel, worldPosition, frequency, ownerUUID);

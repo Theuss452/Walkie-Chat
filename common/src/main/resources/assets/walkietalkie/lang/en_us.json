@@ -84,5 +84,13 @@
   "gui.walkietalkie.error.kick_denied": "Only the owner can kick players.",
   "gui.walkietalkie.error.kicked_by_owner": "You were kicked from the channel by the owner.",
   "message.walkietalkie.kicked_self": "§8[§aWalkie-Talkie§8] §fYou were kicked from the channel by the owner.",
-  "message.walkietalkie.kicked_other": "§8[§aWalkie-Talkie§8] §fYou kicked §e%s §ffrom the channel."
+  "message.walkietalkie.kicked_other": "§8[§aWalkie-Talkie§8] §fYou kicked §e%s §ffrom the channel.",
+  "gui.walkietalkie.popup.leave_title": "Disconnect Channel?",
+  "gui.walkietalkie.popup.leave_single_radio": "Disconnect this radio",
+  "gui.walkietalkie.popup.leave_all_radio_blocks": "Disconnect radio & all blocks",
+  "gui.walkietalkie.popup.leave_single_block": "Disconnect this block",
+  "gui.walkietalkie.popup.leave_all_blocks": "Disconnect all my blocks",
+  "gui.walkietalkie.popup.leave_radio_blocks_desc": "You have %s active block(s) on this frequency.",
+  "gui.walkietalkie.popup.leave_block_multi_desc": "You have %s active block(s) on this frequency.",
+  "gui.walkietalkie.popup.leave_desc": "Are you sure you want to disconnect from this channel?"
 }

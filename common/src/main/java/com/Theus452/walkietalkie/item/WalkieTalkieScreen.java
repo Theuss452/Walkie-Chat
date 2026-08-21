@@ -104,8 +104,11 @@ public final class WalkieTalkieScreen extends Screen {
     private PacketSyncChannels.ChannelInfo selectedChannel;
     private boolean showConfirmPopup = false;
     private Runnable onConfirmAction = null;
+    private Runnable onConfirmAction2 = null;
     private Component confirmPopupTitle = Component.empty();
     private Component confirmPopupDesc = Component.empty();
+    private Component confirmPopupBtn1Text = Component.empty();
+    private Component confirmPopupBtn2Text = Component.empty();
 
     public WalkieTalkieScreen(InteractionHand hand) {
         super(Component.translatable("gui.walkietalkie.title"));
@@ -668,6 +671,9 @@ public final class WalkieTalkieScreen extends Screen {
     }
 
     private int getPopupHeight(List<FormattedCharSequence> descLines) {
+        if (!confirmPopupBtn2Text.getString().isEmpty()) {
+            return Math.max(96, 38 + descLines.size() * 10 + 58);
+        }
         return Math.max(76, 52 + descLines.size() * 10);
     }
 
@@ -678,7 +684,8 @@ public final class WalkieTalkieScreen extends Screen {
     private void renderConfirmPopup(GuiGraphics graphics, int mouseX, int mouseY, int px, int py) {
         graphics.pose().pushPose();
         graphics.pose().translate(0, 0, 400);
-        int pw = 210;
+        boolean multiChoice = !confirmPopupBtn2Text.getString().isEmpty();
+        int pw = multiChoice ? 220 : 210;
         List<FormattedCharSequence> descLines = font.split(confirmPopupDesc, pw - 20);
         int ph = getPopupHeight(descLines);
         int x = px + (PANEL_W - pw) / 2;
@@ -693,20 +700,42 @@ public final class WalkieTalkieScreen extends Screen {
             graphics.drawString(font, line, x + (pw - lineW) / 2, lineY, C_TEXT_DIM, false);
             lineY += 10;
         }
-        Rect confirmBtn = confirmButtonRect(x, y, pw, ph);
-        Rect cancelBtn = cancelButtonRect(x, y, pw, ph);
-        boolean confirmHovered = confirmBtn.contains(mouseX, mouseY);
-        boolean cancelHovered = cancelBtn.contains(mouseX, mouseY);
-        graphics.fill(confirmBtn.x(), confirmBtn.y(), confirmBtn.right(), confirmBtn.bottom(),
-                confirmHovered ? 0xFF18301C : C_PANEL);
-        drawBorder(graphics, confirmBtn, confirmHovered ? C_ACCENT : C_BORDER);
-        graphics.drawCenteredString(font, Component.translatable("gui.walkietalkie.popup.confirm"),
-                confirmBtn.x() + confirmBtn.width() / 2, confirmBtn.y() + 4, confirmHovered ? C_TEXT : C_TEXT_DIM);
-        graphics.fill(cancelBtn.x(), cancelBtn.y(), cancelBtn.right(), cancelBtn.bottom(),
-                cancelHovered ? 0xFF3D1313 : C_PANEL);
-        drawBorder(graphics, cancelBtn, cancelHovered ? 0xFFE04444 : C_BORDER);
-        graphics.drawCenteredString(font, Component.translatable("gui.walkietalkie.popup.cancel"),
-                cancelBtn.x() + cancelBtn.width() / 2, cancelBtn.y() + 4, cancelHovered ? C_TEXT : C_TEXT_DIM);
+        if (multiChoice) {
+            Rect btn1 = multiButton1Rect(x, y, pw, ph);
+            Rect btn2 = multiButton2Rect(x, y, pw, ph);
+            Rect cancelBtn = multiCancelButtonRect(x, y, pw, ph);
+            boolean btn1Hovered = btn1.contains(mouseX, mouseY);
+            boolean btn2Hovered = btn2.contains(mouseX, mouseY);
+            boolean cancelHovered = cancelBtn.contains(mouseX, mouseY);
+
+            graphics.fill(btn1.x(), btn1.y(), btn1.right(), btn1.bottom(), btn1Hovered ? 0xFF18301C : C_PANEL);
+            drawBorder(graphics, btn1, btn1Hovered ? C_ACCENT : C_BORDER);
+            graphics.drawCenteredString(font, confirmPopupBtn1Text, btn1.x() + btn1.width() / 2, btn1.y() + 4, btn1Hovered ? C_TEXT : C_TEXT_DIM);
+
+            graphics.fill(btn2.x(), btn2.y(), btn2.right(), btn2.bottom(), btn2Hovered ? 0xFF5A1818 : 0xFF3D1313);
+            drawBorder(graphics, btn2, btn2Hovered ? 0xFFE04444 : 0xFF882222);
+            graphics.drawCenteredString(font, confirmPopupBtn2Text, btn2.x() + btn2.width() / 2, btn2.y() + 4, btn2Hovered ? 0xFFFFFFFF : 0xFFCC8888);
+
+            graphics.fill(cancelBtn.x(), cancelBtn.y(), cancelBtn.right(), cancelBtn.bottom(), cancelHovered ? 0xFF222822 : C_PANEL);
+            drawBorder(graphics, cancelBtn, cancelHovered ? C_BORDER_GLOW : C_BORDER);
+            graphics.drawCenteredString(font, Component.translatable("gui.walkietalkie.popup.cancel"), cancelBtn.x() + cancelBtn.width() / 2, cancelBtn.y() + 3, cancelHovered ? C_TEXT : C_TEXT_DIM);
+        } else {
+            Rect confirmBtn = confirmButtonRect(x, y, pw, ph);
+            Rect cancelBtn = cancelButtonRect(x, y, pw, ph);
+            boolean confirmHovered = confirmBtn.contains(mouseX, mouseY);
+            boolean cancelHovered = cancelBtn.contains(mouseX, mouseY);
+            graphics.fill(confirmBtn.x(), confirmBtn.y(), confirmBtn.right(), confirmBtn.bottom(),
+                    confirmHovered ? 0xFF18301C : C_PANEL);
+            drawBorder(graphics, confirmBtn, confirmHovered ? C_ACCENT : C_BORDER);
+            Component confirmText = confirmPopupBtn1Text.getString().isEmpty() ? Component.translatable("gui.walkietalkie.popup.confirm") : confirmPopupBtn1Text;
+            graphics.drawCenteredString(font, confirmText,
+                    confirmBtn.x() + confirmBtn.width() / 2, confirmBtn.y() + 4, confirmHovered ? C_TEXT : C_TEXT_DIM);
+            graphics.fill(cancelBtn.x(), cancelBtn.y(), cancelBtn.right(), cancelBtn.bottom(),
+                    cancelHovered ? 0xFF3D1313 : C_PANEL);
+            drawBorder(graphics, cancelBtn, cancelHovered ? 0xFFE04444 : C_BORDER);
+            graphics.drawCenteredString(font, Component.translatable("gui.walkietalkie.popup.cancel"),
+                    cancelBtn.x() + cancelBtn.width() / 2, cancelBtn.y() + 4, cancelHovered ? C_TEXT : C_TEXT_DIM);
+        }
         graphics.pose().popPose();
     }
 
@@ -716,6 +745,18 @@ public final class WalkieTalkieScreen extends Screen {
 
     private Rect cancelButtonRect(int popupX, int popupY, int pw, int ph) {
         return new Rect(popupX + pw - 95, popupY + ph - 22, 75, 16);
+    }
+
+    private Rect multiButton1Rect(int popupX, int popupY, int pw, int ph) {
+        return new Rect(popupX + 12, popupY + ph - 56, pw - 24, 15);
+    }
+
+    private Rect multiButton2Rect(int popupX, int popupY, int pw, int ph) {
+        return new Rect(popupX + 12, popupY + ph - 38, pw - 24, 15);
+    }
+
+    private Rect multiCancelButtonRect(int popupX, int popupY, int pw, int ph) {
+        return new Rect(popupX + 12, popupY + ph - 20, pw - 24, 14);
     }
 
     private void drawInputFrame(GuiGraphics graphics, EditBox input) {
@@ -785,29 +826,66 @@ public final class WalkieTalkieScreen extends Screen {
         int py = panelY();
         int contentY = contentY();
         if (showConfirmPopup && button == 0) {
-            int pw = 210;
+            boolean multiChoice = !confirmPopupBtn2Text.getString().isEmpty();
+            int pw = multiChoice ? 220 : 210;
             List<FormattedCharSequence> descLines = font.split(confirmPopupDesc, pw - 20);
             int ph = getPopupHeight(descLines);
             int x = px + (PANEL_W - pw) / 2;
             int y = py + (PANEL_H - ph) / 2;
-            Rect confirmBtn = confirmButtonRect(x, y, pw, ph);
-            Rect cancelBtn = cancelButtonRect(x, y, pw, ph);
-            if (confirmBtn.contains(mouseX, mouseY)) {
-                showConfirmPopup = false;
-                playSfx(ModSounds.WALKIE_TALKIE_BUTTON_CLICK.get(), 1.0F);
-                if (onConfirmAction != null) {
-                    onConfirmAction.run();
-                    onConfirmAction = null;
+            if (multiChoice) {
+                Rect btn1 = multiButton1Rect(x, y, pw, ph);
+                Rect btn2 = multiButton2Rect(x, y, pw, ph);
+                Rect cancelBtn = multiCancelButtonRect(x, y, pw, ph);
+                if (btn1.contains(mouseX, mouseY)) {
+                    showConfirmPopup = false;
+                    playSfx(ModSounds.WALKIE_TALKIE_BUTTON_CLICK.get(), 1.0F);
+                    if (onConfirmAction != null) {
+                        onConfirmAction.run();
+                        onConfirmAction = null;
+                        onConfirmAction2 = null;
+                    }
+                    updateWidgetVisibility();
+                    return true;
                 }
-                updateWidgetVisibility();
-                return true;
-            }
-            if (cancelBtn.contains(mouseX, mouseY)) {
-                showConfirmPopup = false;
-                onConfirmAction = null;
-                playSfx(ModSounds.WALKIE_TALKIE_BUTTON_CLICK.get(), 1.0F);
-                updateWidgetVisibility();
-                return true;
+                if (btn2.contains(mouseX, mouseY)) {
+                    showConfirmPopup = false;
+                    playSfx(ModSounds.WALKIE_TALKIE_BUTTON_CLICK.get(), 1.0F);
+                    if (onConfirmAction2 != null) {
+                        onConfirmAction2.run();
+                        onConfirmAction = null;
+                        onConfirmAction2 = null;
+                    }
+                    updateWidgetVisibility();
+                    return true;
+                }
+                if (cancelBtn.contains(mouseX, mouseY)) {
+                    showConfirmPopup = false;
+                    onConfirmAction = null;
+                    onConfirmAction2 = null;
+                    playSfx(ModSounds.WALKIE_TALKIE_BUTTON_CLICK.get(), 1.0F);
+                    updateWidgetVisibility();
+                    return true;
+                }
+            } else {
+                Rect confirmBtn = confirmButtonRect(x, y, pw, ph);
+                Rect cancelBtn = cancelButtonRect(x, y, pw, ph);
+                if (confirmBtn.contains(mouseX, mouseY)) {
+                    showConfirmPopup = false;
+                    playSfx(ModSounds.WALKIE_TALKIE_BUTTON_CLICK.get(), 1.0F);
+                    if (onConfirmAction != null) {
+                        onConfirmAction.run();
+                        onConfirmAction = null;
+                    }
+                    updateWidgetVisibility();
+                    return true;
+                }
+                if (cancelBtn.contains(mouseX, mouseY)) {
+                    showConfirmPopup = false;
+                    onConfirmAction = null;
+                    playSfx(ModSounds.WALKIE_TALKIE_BUTTON_CLICK.get(), 1.0F);
+                    updateWidgetVisibility();
+                    return true;
+                }
             }
             return true;
         }
@@ -901,9 +979,12 @@ public final class WalkieTalkieScreen extends Screen {
                             showConfirmPopup = true;
                             confirmPopupTitle = Component.translatable("gui.walkietalkie.popup.kick_title");
                             confirmPopupDesc = Component.translatable("gui.walkietalkie.popup.kick_desc", memberName);
+                            confirmPopupBtn1Text = Component.translatable("gui.walkietalkie.popup.confirm");
+                            confirmPopupBtn2Text = Component.empty();
                             onConfirmAction = () -> {
                                 Platform.getHelper().sendToServer(new PacketKickPlayer(currentFrequency, memberName));
                             };
+                            onConfirmAction2 = null;
                             playSfx(ModSounds.WALKIE_TALKIE_BUTTON_CLICK.get(), 1.0F);
                             updateWidgetVisibility();
                             return true;
@@ -954,6 +1035,7 @@ public final class WalkieTalkieScreen extends Screen {
             if (keyCode == 256) {
                 showConfirmPopup = false;
                 onConfirmAction = null;
+                onConfirmAction2 = null;
                 updateWidgetVisibility();
                 return true;
             }
@@ -1063,7 +1145,10 @@ public final class WalkieTalkieScreen extends Screen {
             showConfirmPopup = true;
             confirmPopupTitle = Component.translatable("gui.walkietalkie.popup.confirm_title");
             confirmPopupDesc = Component.translatable("gui.walkietalkie.popup.confirm_desc");
+            confirmPopupBtn1Text = Component.translatable("gui.walkietalkie.popup.confirm");
+            confirmPopupBtn2Text = Component.empty();
             onConfirmAction = () -> performJoinQuickFrequency(frequency);
+            onConfirmAction2 = null;
             updateWidgetVisibility();
             return;
         }
@@ -1094,7 +1179,10 @@ public final class WalkieTalkieScreen extends Screen {
             showConfirmPopup = true;
             confirmPopupTitle = Component.translatable("gui.walkietalkie.popup.confirm_title");
             confirmPopupDesc = Component.translatable("gui.walkietalkie.popup.confirm_desc");
+            confirmPopupBtn1Text = Component.translatable("gui.walkietalkie.popup.confirm");
+            confirmPopupBtn2Text = Component.empty();
             onConfirmAction = () -> performJoinSelectedChannel(password);
+            onConfirmAction2 = null;
             updateWidgetVisibility();
             return;
         }
@@ -1159,6 +1247,43 @@ public final class WalkieTalkieScreen extends Screen {
         if (pendingAction != null) {
             return;
         }
+        PacketSyncChannels.ChannelInfo info = findChannel(currentFrequency);
+        int userBlockCount = info != null ? info.userBlockCount() : 0;
+        showConfirmPopup = true;
+        confirmPopupTitle = Component.translatable("gui.walkietalkie.popup.leave_title");
+        if (isBlockMode()) {
+            if (userBlockCount > 1) {
+                confirmPopupDesc = Component.translatable("gui.walkietalkie.popup.leave_block_multi_desc", userBlockCount);
+                confirmPopupBtn1Text = Component.translatable("gui.walkietalkie.popup.leave_single_block");
+                confirmPopupBtn2Text = Component.translatable("gui.walkietalkie.popup.leave_all_blocks");
+                onConfirmAction = this::performLeaveSingle;
+                onConfirmAction2 = this::performDisconnectAllBlocks;
+            } else {
+                confirmPopupDesc = Component.translatable("gui.walkietalkie.popup.leave_desc");
+                confirmPopupBtn1Text = Component.translatable("gui.walkietalkie.popup.confirm");
+                confirmPopupBtn2Text = Component.empty();
+                onConfirmAction = this::performLeaveSingle;
+                onConfirmAction2 = null;
+            }
+        } else {
+            if (userBlockCount > 0) {
+                confirmPopupDesc = Component.translatable("gui.walkietalkie.popup.leave_radio_blocks_desc", userBlockCount);
+                confirmPopupBtn1Text = Component.translatable("gui.walkietalkie.popup.leave_single_radio");
+                confirmPopupBtn2Text = Component.translatable("gui.walkietalkie.popup.leave_all_radio_blocks");
+                onConfirmAction = this::performLeaveSingle;
+                onConfirmAction2 = this::performDisconnectRadioAndAllBlocks;
+            } else {
+                confirmPopupDesc = Component.translatable("gui.walkietalkie.popup.leave_desc");
+                confirmPopupBtn1Text = Component.translatable("gui.walkietalkie.popup.confirm");
+                confirmPopupBtn2Text = Component.empty();
+                onConfirmAction = this::performLeaveSingle;
+                onConfirmAction2 = null;
+            }
+        }
+        updateWidgetVisibility();
+    }
+
+    private void performLeaveSingle() {
         long requestId = beginAction(ChannelActionType.LEAVE);
         if (isBlockMode()) {
             Platform.getHelper().sendToServer(new PacketBlockChannelAction(
@@ -1170,6 +1295,29 @@ public final class WalkieTalkieScreen extends Screen {
         } else {
             Platform.getHelper().sendToServer(new PacketSetFrequency("", hand, requestId));
         }
+        playSfx(ModSounds.WALKIE_TALKIE_CHANGE_CHANNEL.get(), 1.0F);
+    }
+
+    private void performDisconnectAllBlocks() {
+        long requestId = beginAction(ChannelActionType.DISCONNECT_ALL);
+        Platform.getHelper().sendToServer(new PacketBlockChannelAction(
+                blockPos,
+                ChannelActionType.DISCONNECT_ALL,
+                currentFrequency,
+                "",
+                requestId));
+        playSfx(ModSounds.WALKIE_TALKIE_CHANGE_CHANNEL.get(), 1.0F);
+    }
+
+    private void performDisconnectRadioAndAllBlocks() {
+        long requestId = beginAction(ChannelActionType.DISCONNECT_ALL);
+        Platform.getHelper().sendToServer(new PacketSetFrequency("", hand, requestId));
+        Platform.getHelper().sendToServer(new PacketBlockChannelAction(
+                BlockPos.ZERO,
+                ChannelActionType.DISCONNECT_ALL,
+                currentFrequency,
+                "",
+                requestId));
         playSfx(ModSounds.WALKIE_TALKIE_CHANGE_CHANNEL.get(), 1.0F);
     }
 

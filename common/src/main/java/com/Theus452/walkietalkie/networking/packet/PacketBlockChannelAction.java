@@ -44,6 +44,7 @@ public final class PacketBlockChannelAction {
             case CREATE -> ChannelManager.createBlockChannel(player, packet.pos, packet.frequency, packet.name, packet.requestId);
             case JOIN -> ChannelManager.joinBlockChannel(player, packet.pos, packet.frequency, packet.requestId);
             case LEAVE -> ChannelManager.leaveBlockChannel(player, packet.pos, packet.requestId);
+            case DISCONNECT_ALL -> ChannelManager.disconnectAllOwnedBlocks(player, packet.frequency, packet.requestId);
         }
     }
 }

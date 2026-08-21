@@ -84,5 +84,13 @@
   "gui.walkietalkie.error.kick_denied": "Apenas o dono pode expulsar jogadores.",
   "gui.walkietalkie.error.kicked_by_owner": "Você foi kickado do canal pelo proprietário.",
   "message.walkietalkie.kicked_self": "§8[§aWalkie-Talkie§8] §fVocê foi kickado do canal pelo proprietário.",
-  "message.walkietalkie.kicked_other": "§8[§aWalkie-Talkie§8] §fVocê kickou §e%s §fdo canal."
+  "message.walkietalkie.kicked_other": "§8[§aWalkie-Talkie§8] §fVocê kickou §e%s §fdo canal.",
+  "gui.walkietalkie.popup.leave_title": "Desconectar Canal?",
+  "gui.walkietalkie.popup.leave_single_radio": "Desconectar apenas este rádio",
+  "gui.walkietalkie.popup.leave_all_radio_blocks": "Desconectar rádio e todos os blocos",
+  "gui.walkietalkie.popup.leave_single_block": "Desconectar apenas este bloco",
+  "gui.walkietalkie.popup.leave_all_blocks": "Desconectar todos os meus blocos",
+  "gui.walkietalkie.popup.leave_radio_blocks_desc": "Você possui %s bloco(s) ativo(s) nesta frequência.",
+  "gui.walkietalkie.popup.leave_block_multi_desc": "Você possui %s bloco(s) ativo(s) nesta frequência.",
+  "gui.walkietalkie.popup.leave_desc": "Tem certeza que deseja se desconectar deste canal?"
 }

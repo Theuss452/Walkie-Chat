@@ -34,6 +34,12 @@ public final class ConnectionManager {
     }
 
     public static void playerDroppedWalkieTalkie(ServerPlayer player, String frequency) {
+        if (player == null || player.server == null || frequency.isEmpty()) {
+            return;
+        }
+        if (ChannelRegistry.get(player.server).getChannel(frequency) == null && !WalkieBlockRegistry.hasFrequency(frequency)) {
+            return;
+        }
         if (countWalkieTalkiesWithFrequency(player, frequency) == 0) {
             DISCONNECTION_TIMERS
                     .computeIfAbsent(player.getUUID(), key -> new HashMap<>())
@@ -174,7 +180,8 @@ public final class ConnectionManager {
 
     public static boolean removeEmptyChannels(MinecraftServer server) {
         ensureServer(server);
-        return false;
+        ChannelManager.cleanup(server);
+        return true;
     }
 
     private static void removeFrequency(String frequency) {
@@ -208,23 +215,19 @@ public final class ConnectionManager {
         for (ChannelRegistry.ChannelDefinition definition : ChannelRegistry.get(server).getChannels()) {
             definitions.put(definition.frequency(), definition);
         }
-        Set<String> frequencies = new HashSet<>(definitions.keySet());
-        frequencies.addAll(activePlayers.keySet());
-        List<PacketSyncChannels.ChannelInfo> channels = new ArrayList<>(frequencies.size());
-        for (String frequency : frequencies) {
-            ChannelRegistry.ChannelDefinition definition = definitions.get(frequency);
-            List<String> players;
-            if (definition != null) {
-                players = definition.memberNames();
-            } else {
-                players = activePlayers.getOrDefault(frequency, List.of());
+        List<PacketSyncChannels.ChannelInfo> channels = new ArrayList<>(definitions.size());
+        for (Map.Entry<String, ChannelRegistry.ChannelDefinition> entry : definitions.entrySet()) {
+            String frequency = entry.getKey();
+            ChannelRegistry.ChannelDefinition definition = entry.getValue();
+            List<String> players = definition.memberNames();
+            if (players.isEmpty() && !WalkieBlockRegistry.hasFrequency(frequency)) {
+                continue;
             }
-            boolean passwordProtected = definition != null && definition.passwordProtected();
+            boolean passwordProtected = definition.passwordProtected();
             boolean mayInspect = !passwordProtected || ChannelManager.canAccess(viewer, frequency);
-            String name = definition == null
-                    ? Component.translatable("gui.walkietalkie.unnamed_channel", frequency).getString()
-                    : definition.name();
-            String ownerName = definition == null ? "" : definition.ownerName();
+            String name = definition.name();
+            String ownerName = definition.ownerName();
+            int userBlockCount = WalkieBlockRegistry.getOwnedBlockCount(viewer.getUUID(), frequency);
             channels.add(new PacketSyncChannels.ChannelInfo(
                     frequency,
                     name,
@@ -232,12 +235,11 @@ public final class ConnectionManager {
                     mayInspect ? players.size() : -1,
                     mayInspect ? players : List.of(),
                     passwordProtected,
-                    definition != null
+                    true,
+                    userBlockCount
             ));
         }
-        channels.sort(Comparator
-                .comparing(PacketSyncChannels.ChannelInfo::persistent).reversed()
-                .thenComparingInt(info -> Integer.parseInt(info.frequency())));
+        channels.sort(Comparator.comparingInt(info -> Integer.parseInt(info.frequency())));
         int hash = channels.hashCode();
         Integer previousHash = LAST_SENT_HASHES.get(viewer.getUUID());
         if (force || previousHash == null || previousHash != hash) {
@@ -248,14 +250,16 @@ public final class ConnectionManager {
 
     private static Map<String, List<String>> buildActivePlayers(MinecraftServer server) {
         Map<String, List<String>> activePlayers = new HashMap<>();
+        ChannelRegistry registry = ChannelRegistry.get(server);
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             Set<String> frequencies = collectCurrentFrequencies(player);
             Map<String, Long> timers = DISCONNECTION_TIMERS.get(player.getUUID());
             if (timers != null) {
                 long now = System.currentTimeMillis();
                 for (Map.Entry<String, Long> entry : timers.entrySet()) {
-                    if (now <= entry.getValue() && ChannelManager.canAccess(player, entry.getKey())) {
-                        frequencies.add(entry.getKey());
+                    String freq = entry.getKey();
+                    if (now <= entry.getValue() && ChannelManager.canAccess(player, freq) && (registry.getChannel(freq) != null || WalkieBlockRegistry.hasFrequency(freq))) {
+                        frequencies.add(freq);
                     }
                 }
             }

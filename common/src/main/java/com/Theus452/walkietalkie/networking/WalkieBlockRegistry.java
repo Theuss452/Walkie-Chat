@@ -21,6 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class WalkieBlockRegistry {
     private static final Map<String, Set<GlobalPos>> BY_FREQUENCY = new ConcurrentHashMap<>();
     private static final Map<UUID, Map<String, Set<GlobalPos>>> BY_OWNER = new ConcurrentHashMap<>();
+    private static final Map<String, Long> REVOCATIONS = new ConcurrentHashMap<>();
 
     private WalkieBlockRegistry() {
     }
@@ -28,6 +29,9 @@ public final class WalkieBlockRegistry {
     public static void register(ServerLevel level, BlockPos pos, String frequency, UUID owner) {
         String safeFrequency = WalkieFrequency.sanitize(frequency);
         if (level == null || pos == null || safeFrequency.isEmpty()) return;
+        if (owner != null && isRevoked(owner, safeFrequency)) {
+            return;
+        }
         GlobalPos globalPos = GlobalPos.of(level.dimension(), pos);
         BY_FREQUENCY.computeIfAbsent(safeFrequency, key -> ConcurrentHashMap.newKeySet()).add(globalPos);
         if (owner != null) {
@@ -106,9 +110,24 @@ public final class WalkieBlockRegistry {
 
     public static int getBlockCount(String frequency) {
         String safeFrequency = WalkieFrequency.sanitize(frequency);
-        if (safeFrequency.isEmpty()) return 0;
         Set<GlobalPos> set = BY_FREQUENCY.get(safeFrequency);
         return set == null ? 0 : set.size();
+    }
+
+    public static boolean hasFrequency(String frequency) {
+        String safeFrequency = WalkieFrequency.sanitize(frequency);
+        if (safeFrequency.isEmpty()) return false;
+        Set<GlobalPos> set = BY_FREQUENCY.get(safeFrequency);
+        return set != null && !set.isEmpty();
+    }
+
+    public static int getOwnedBlockCount(UUID owner, String frequency) {
+        String safeFrequency = WalkieFrequency.sanitize(frequency);
+        if (owner == null || safeFrequency.isEmpty()) return 0;
+        Map<String, Set<GlobalPos>> frequencies = BY_OWNER.get(owner);
+        if (frequencies == null) return 0;
+        Set<GlobalPos> blocks = frequencies.get(safeFrequency);
+        return blocks == null ? 0 : blocks.size();
     }
 
     public static List<GlobalPos> getBlocks(String frequency, MinecraftServer server) {
@@ -141,9 +160,54 @@ public final class WalkieBlockRegistry {
         return frequencies != null && frequencies.containsKey(frequency);
     }
 
+    public static void disconnectAllForOwner(MinecraftServer server, UUID owner, String frequency) {
+        String safeFrequency = WalkieFrequency.sanitize(frequency);
+        if (owner == null || safeFrequency.isEmpty()) return;
+        REVOCATIONS.put(owner + ":" + safeFrequency, System.currentTimeMillis());
+        Map<String, Set<GlobalPos>> ownerFrequencies = BY_OWNER.get(owner);
+        if (ownerFrequencies != null) {
+            Set<GlobalPos> blocks = ownerFrequencies.remove(safeFrequency);
+            if (blocks != null) {
+                for (GlobalPos globalPos : blocks) {
+                    Set<GlobalPos> freqSet = BY_FREQUENCY.get(safeFrequency);
+                    if (freqSet != null) {
+                        freqSet.remove(globalPos);
+                        if (freqSet.isEmpty()) {
+                            BY_FREQUENCY.remove(safeFrequency);
+                        }
+                    }
+                    if (server != null) {
+                        ServerLevel level = server.getLevel(globalPos.dimension());
+                        if (level != null) {
+                            BlockEntity be = level.getBlockEntity(globalPos.pos());
+                            if (be instanceof WalkieTalkieBlockEntity walkie && safeFrequency.equals(walkie.getFrequency())) {
+                                walkie.setFrequency("");
+                                walkie.setChannelName("");
+                            }
+                        }
+                    }
+                }
+            }
+            if (ownerFrequencies.isEmpty()) {
+                BY_OWNER.remove(owner);
+            }
+        }
+    }
+
+    public static boolean isRevoked(UUID owner, String frequency) {
+        if (owner == null || frequency == null || frequency.isEmpty()) return false;
+        return REVOCATIONS.containsKey(owner + ":" + WalkieFrequency.sanitize(frequency));
+    }
+
+    public static void clearRevocation(UUID owner, String frequency) {
+        if (owner == null || frequency == null || frequency.isEmpty()) return;
+        REVOCATIONS.remove(owner + ":" + WalkieFrequency.sanitize(frequency));
+    }
+
     public static void clearOnStop() {
         BY_FREQUENCY.clear();
         BY_OWNER.clear();
+        REVOCATIONS.clear();
     }
 
     private static boolean isActiveBlock(ServerLevel level, BlockPos pos, String frequency) {

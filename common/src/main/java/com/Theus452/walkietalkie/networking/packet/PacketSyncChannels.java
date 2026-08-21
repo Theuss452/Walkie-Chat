@@ -14,7 +14,8 @@ public final class PacketSyncChannels {
             int playerCount,
             List<String> players,
             boolean passwordProtected,
-            boolean persistent
+            boolean persistent,
+            int userBlockCount
     ) {
         public ChannelInfo {
             players = Collections.unmodifiableList(new ArrayList<>(players));
@@ -37,12 +38,13 @@ public final class PacketSyncChannels {
             int playerCount = buf.readVarInt();
             boolean passwordProtected = buf.readBoolean();
             boolean persistent = buf.readBoolean();
+            int userBlockCount = buf.readVarInt();
             int pSize = buf.readVarInt();
             List<String> players = new ArrayList<>(pSize);
             for (int j = 0; j < pSize; j++) {
                 players.add(buf.readUtf(32));
             }
-            list.add(new ChannelInfo(freq, name, ownerName, playerCount, players, passwordProtected, persistent));
+            list.add(new ChannelInfo(freq, name, ownerName, playerCount, players, passwordProtected, persistent, userBlockCount));
         }
         this.channels = Collections.unmodifiableList(list);
     }
@@ -56,6 +58,7 @@ public final class PacketSyncChannels {
             buf.writeVarInt(ch.playerCount());
             buf.writeBoolean(ch.passwordProtected());
             buf.writeBoolean(ch.persistent());
+            buf.writeVarInt(ch.userBlockCount());
             buf.writeVarInt(ch.players().size());
             for (String p : ch.players()) {
                 buf.writeUtf(p, 32);
