@@ -9,7 +9,6 @@
   "mixins": [
     "MsgCommandMixin",
     "PlayerListMixin",
-    "ServerGamePacketListenerImplMixin",
     "PlayerInventoryMixin",
     "ServerPlayerMixin"
   ],

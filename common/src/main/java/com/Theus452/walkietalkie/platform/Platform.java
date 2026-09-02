@@ -10,4 +10,8 @@ public class Platform {
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("Nenhuma plataforma compatível (Forge ou Fabric) foi encontrada."));
     }
+
+    public static IPlatformHelper getHelper() {
+        return HELPER;
+    }
 }

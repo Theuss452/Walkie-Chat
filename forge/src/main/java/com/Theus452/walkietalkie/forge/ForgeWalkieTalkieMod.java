@@ -1,6 +1,7 @@
 package com.Theus452.walkietalkie.forge;
 
 import com.Theus452.walkietalkie.WalkieTalkieMod;
+import com.Theus452.walkietalkie.forge.block.ForgeBlocks;
 import com.Theus452.walkietalkie.forge.config.ForgeModConfigs;
 import com.Theus452.walkietalkie.forge.item.ForgeCreativeTabs;
 import com.Theus452.walkietalkie.forge.item.ForgeItems;
@@ -22,6 +23,7 @@ public class ForgeWalkieTalkieMod {
     public ForgeWalkieTalkieMod() {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
 
+        ForgeBlocks.register(modEventBus);
         ForgeItems.register(modEventBus);
         ForgeSounds.register(modEventBus);
 
@@ -31,9 +33,7 @@ public class ForgeWalkieTalkieMod {
         ModSounds.WALKIE_TALKIE_SEND_MSG = ForgeSounds.WALKIE_TALKIE_SEND_MSG_REG_OBJ;
         ModSounds.WALKIE_TALKIE_MSG_RECEIVER = ForgeSounds.WALKIE_TALKIE_MSG_RECEIVER_REG_OBJ;
 
-
         ModCreativeModTabs.WALKIETALKIE_TAB = () -> ForgeCreativeTabs.WALKIETALKIE_TAB;
-
 
         ModLoadingContext.get().registerConfig(ModConfig.Type.SERVER, ForgeModConfigs.SPEC);
         ForgePacketHandler.register();
@@ -44,5 +44,4 @@ public class ForgeWalkieTalkieMod {
     private void commonSetup(final FMLCommonSetupEvent event) {
 
     }
-
 }

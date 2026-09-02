@@ -1,6 +1,7 @@
 package com.Theus452.walkietalkie.fabric;
 
 import com.Theus452.walkietalkie.WalkieTalkieMod;
+import com.Theus452.walkietalkie.fabric.block.FabricBlocks;
 import com.Theus452.walkietalkie.fabric.command.FabricCommands;
 import com.Theus452.walkietalkie.fabric.config.FabricModConfigs;
 import com.Theus452.walkietalkie.fabric.event.FabricEvents;
@@ -20,6 +21,7 @@ public class FabricWalkieTalkieMod implements ModInitializer {
         LOGGER.info("Walkie-Talkie Mod for Fabric...");
 
         FabricCreativeTabs.register();
+        FabricBlocks.register();
         FabricItems.register();
         FabricSounds.register();
         FabricPacketHandler.registerC2SPackets();

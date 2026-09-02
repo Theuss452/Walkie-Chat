@@ -1,5 +1,7 @@
 {
+  "message.walkietalkie.vocal_muted": "Sua voz está esgotada demais para falar no rádio.",
   "item.walkietalkie.walkie_talkie": "Walkie-Talkie",
+  "block.walkietalkie.walkie_talkie_block": "Estação Walkie-Talkie",
 
   "sounds.walkietalkie.walkie_talkie_open_menu": "Walkie Talkie Menu",
   "sounds.walkietalkie.change_channel": "Mudanca de canal do Walkie Talkie",
@@ -20,5 +22,10 @@
   "gui.walkietalkie.frequency.suggestion": "Digite um valor (1-1000)",
   "tooltip.walkietalkie.frequency.chat": "§7Frequência: §e%s",
   "message.walkietalkie.no_one_on_frequency": "Não há ninguém nesta frequência para ver a sua mensagem!",
-  "message.walkietalkie.lost_connection": "%s perdeu o walkie-talkie e saiu da frequência"
+  "message.walkietalkie.lost_connection": "%s perdeu o walkie-talkie e saiu da frequência",
+
+  "message.walkietalkie.block.not_owner": "Você não é o proprietário desta estação!",
+  "message.walkietalkie.block.toggled_on": "Estação de Walkie-Talkie ligada.",
+  "message.walkietalkie.block.toggled_off": "Estação de Walkie-Talkie desligada.",
+  "message.walkietalkie.block.private_forbidden": "Blocos não podem sintonizar frequências privadas."
 }
