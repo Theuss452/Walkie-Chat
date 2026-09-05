@@ -3,6 +3,7 @@ package com.Theus452.walkietalkie.neoforge;
 import com.Theus452.walkietalkie.WalkieTalkieMod;
 import com.Theus452.walkietalkie.item.ModCreativeModTabs;
 import com.Theus452.walkietalkie.item.ModItems;
+import com.Theus452.walkietalkie.neoforge.block.NeoForgeBlocks;
 import com.Theus452.walkietalkie.neoforge.config.NeoForgeModConfigs;
 import com.Theus452.walkietalkie.neoforge.event.NeoForgeEvents;
 import com.Theus452.walkietalkie.neoforge.item.NeoForgeCreativeTabs;
@@ -38,6 +39,7 @@ public class NeoForgeWalkieTalkieMod {
         }
 
         NeoForgeItems.register(modEventBus);
+        NeoForgeBlocks.register(modEventBus);
         NeoForgeSounds.register(modEventBus);
         NeoForgeCreativeTabs.register(modEventBus);
 

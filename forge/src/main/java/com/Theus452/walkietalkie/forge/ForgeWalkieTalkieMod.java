@@ -1,6 +1,7 @@
 package com.Theus452.walkietalkie.forge;
 
 import com.Theus452.walkietalkie.WalkieTalkieMod;
+import com.Theus452.walkietalkie.forge.block.ForgeBlocks;
 import com.Theus452.walkietalkie.forge.config.ForgeModConfigs;
 import com.Theus452.walkietalkie.forge.event.ForgeEvents;
 import com.Theus452.walkietalkie.forge.item.ForgeCreativeTabs;
@@ -40,11 +41,10 @@ public class ForgeWalkieTalkieMod {
 
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
 
-
         ForgeItems.register(modEventBus);
+        ForgeBlocks.register(modEventBus);
         ForgeSounds.register(modEventBus);
         ForgeCreativeTabs.register(modEventBus);
-
 
         ModItems.WALKIETALKIE = ForgeItems.WALKIETALKIE_REG_OBJ;
         ModSounds.WALKIE_TALKIE_OPEN_MENU = ForgeSounds.WALKIE_TALKIE_OPEN_MENU_REG_OBJ;
@@ -53,27 +53,21 @@ public class ForgeWalkieTalkieMod {
         ModSounds.WALKIE_TALKIE_MSG_RECEIVER = ForgeSounds.WALKIE_TALKIE_MSG_RECEIVER_REG_OBJ;
         ModCreativeModTabs.WALKIETALKIE_TAB = ForgeCreativeTabs.WALKIETALKIE_TAB;
 
-
         ModLoadingContext.get().registerConfig(ModConfig.Type.SERVER, ForgeModConfigs.SPEC);
-
 
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::addCreative);
         ForgePacketHandler.register();
         MinecraftForge.EVENT_BUS.register(new ForgeEvents());
-
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {
-
     }
 
     private void addCreative(BuildCreativeModeTabContentsEvent event) {
-
         if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
             event.accept(ModItems.WALKIETALKIE.get());
         }
-
 
         if (event.getTabKey() == ForgeCreativeTabs.WALKIETALKIE_TAB.getKey()) {
             event.accept(ModItems.WALKIETALKIE.get());

@@ -1,0 +1,27 @@
+{
+    "type": "minecraft:block",
+    "pools": [
+        {
+            "rolls": 1,
+            "entries": [
+                {
+                    "type": "minecraft:item",
+                    "name": "walkietalkie:walkie_talkie",
+                    "functions": [
+                        {
+                            "function": "minecraft:copy_custom_data",
+                            "source": "block_entity",
+                            "ops": [
+                                {
+                                    "source": "frequency",
+                                    "target": "frequency",
+                                    "op": "replace"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
