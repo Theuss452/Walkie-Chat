@@ -61,6 +61,9 @@ public final class WalkieMessageHelper {
             sender.playNotifySound(ModSounds.WALKIE_TALKIE_SEND_MSG.get(), SoundSource.PLAYERS, 1.0F, 1.0F);
         }
 
+        com.Theus452.walkietalkie.channel.ChannelRegistry.ChannelDefinition definition = com.Theus452.walkietalkie.channel.ChannelRegistry.get(server).getChannel(frequency);
+        boolean isPrivate = definition != null && definition.passwordProtected();
+
         Set<ServerPlayer> recipients = new HashSet<>();
         Map<WalkieTalkieBlockEntity, Set<ServerPlayer>> blockListeners = new LinkedHashMap<>();
         Set<ServerPlayer> blockRecipients = new HashSet<>();
@@ -68,30 +71,41 @@ public final class WalkieMessageHelper {
 
         for (ServerPlayer receiver : server.getPlayerList().getPlayers()) {
             if (receiver == sender) continue;
-            if (hasWalkieTalkieWithFrequency(receiver, frequency)) {
-                recipients.add(receiver);
-            }
-            WalkieTalkieBlockEntity nearbyBlock = findNearbyActiveBlock(receiver, frequency);
-            if (nearbyBlock != null) {
-                recipients.add(receiver);
-                blockRecipients.add(receiver);
-                blockListeners.computeIfAbsent(nearbyBlock, ignored -> new HashSet<>()).add(receiver);
+            boolean hasRadio = hasWalkieTalkieWithFrequency(receiver, frequency);
+            boolean isConnectedToBlock = WalkieBlockRegistry.isPlayerConnectedToAnyBlock(receiver.getUUID(), frequency);
+            if (isPrivate) {
+                if ((hasRadio || isConnectedToBlock) && com.Theus452.walkietalkie.channel.ChannelManager.canAccess(receiver, frequency)) {
+                    recipients.add(receiver);
+                }
+            } else {
+                if (hasRadio || isConnectedToBlock) {
+                    recipients.add(receiver);
+                }
+                WalkieTalkieBlockEntity nearbyBlock = findNearbyActiveBlock(receiver, frequency);
+                if (nearbyBlock != null) {
+                    recipients.add(receiver);
+                    blockRecipients.add(receiver);
+                    blockListeners.computeIfAbsent(nearbyBlock, ignored -> new HashSet<>()).add(receiver);
+                }
             }
         }
 
-        for (GlobalPos globalPos : activeBlocks) {
-            ServerLevel level = server.getLevel(globalPos.dimension());
-            if (level == null) continue;
-            BlockEntity be = level.getBlockEntity(globalPos.pos());
-            if (be instanceof WalkieTalkieBlockEntity walkie && walkie.isActive()) {
-                double x = globalPos.pos().getX() + 0.5D;
-                double y = globalPos.pos().getY() + 0.5D;
-                double z = globalPos.pos().getZ() + 0.5D;
-                for (ServerPlayer nearbyPlayer : level.players()) {
-                    if (nearbyPlayer != sender && nearbyPlayer.distanceToSqr(x, y, z) <= BLOCK_LISTEN_RANGE_SQ) {
-                        recipients.add(nearbyPlayer);
-                        blockRecipients.add(nearbyPlayer);
-                        blockListeners.computeIfAbsent(walkie, ignored -> new HashSet<>()).add(nearbyPlayer);
+        if (!isPrivate) {
+            for (GlobalPos globalPos : activeBlocks) {
+                ServerLevel level = server.getLevel(globalPos.dimension());
+                if (level == null) continue;
+                BlockEntity be = level.getBlockEntity(globalPos.pos());
+                if (be instanceof WalkieTalkieBlockEntity walkie && walkie.isActive()) {
+                    com.Theus452.walkietalkie.compat.AttractToChatCompat.attractMobsAtBlock(sender, level, walkie.getBlockPos(), rawText);
+                    double x = globalPos.pos().getX() + 0.5D;
+                    double y = globalPos.pos().getY() + 0.5D;
+                    double z = globalPos.pos().getZ() + 0.5D;
+                    for (ServerPlayer nearbyPlayer : level.players()) {
+                        if (nearbyPlayer != sender && nearbyPlayer.distanceToSqr(x, y, z) <= BLOCK_LISTEN_RANGE_SQ) {
+                            recipients.add(nearbyPlayer);
+                            blockRecipients.add(nearbyPlayer);
+                            blockListeners.computeIfAbsent(walkie, ignored -> new HashSet<>()).add(nearbyPlayer);
+                        }
                     }
                 }
             }
@@ -99,7 +113,7 @@ public final class WalkieMessageHelper {
 
         for (Map.Entry<WalkieTalkieBlockEntity, Set<ServerPlayer>> entry : blockListeners.entrySet()) {
             entry.getKey().markMessageReceived();
-            entry.getKey().playReceiveSound(entry.getValue());
+            entry.getKey().playReceiveSound(sender, entry.getValue());
         }
 
         WalkieBlockMessageRelay.publish(server, sender, frequency, rawText, recipients);
@@ -110,7 +124,16 @@ public final class WalkieMessageHelper {
             WalkieNetworkHandler.sendPushMessage(recipient, frequency, sender.getName().getString(), rawText);
             IncomingMessageSoundLimiter.SoundDecision soundDecision = IncomingMessageSoundLimiter.evaluate(recipient);
             if (!blockRecipients.contains(recipient) && soundDecision.shouldPlay() && ModSounds.WALKIE_TALKIE_MSG_RECEIVER != null) {
-                recipient.playNotifySound(ModSounds.WALKIE_TALKIE_MSG_RECEIVER.get(), SoundSource.PLAYERS, soundDecision.volume(), soundDecision.pitch());
+                recipient.serverLevel().playSound(
+                        sender,
+                        recipient.getX(),
+                        recipient.getY(),
+                        recipient.getZ(),
+                        ModSounds.WALKIE_TALKIE_MSG_RECEIVER.get(),
+                        SoundSource.PLAYERS,
+                        Math.min(soundDecision.volume(), 0.6F),
+                        soundDecision.pitch()
+                );
             }
         }
 
@@ -124,6 +147,9 @@ public final class WalkieMessageHelper {
     private static boolean isNearbyMatchingBlock(ServerPlayer player, BlockEntity blockEntity, String expectedFrequency) {
         if (!(blockEntity instanceof WalkieTalkieBlockEntity walkie) || !walkie.isActive()) return false;
         if (!expectedFrequency.isEmpty() && !expectedFrequency.equals(walkie.getFrequency())) return false;
+        if (player.server != null && !com.Theus452.walkietalkie.channel.ChannelManager.canAccess(player, walkie.getFrequency())) {
+            return false;
+        }
         return player.distanceToSqr(walkie.getBlockPos().getX() + 0.5D, walkie.getBlockPos().getY() + 0.5D, walkie.getBlockPos().getZ() + 0.5D) <= BLOCK_LISTEN_RANGE_SQ;
     }
 

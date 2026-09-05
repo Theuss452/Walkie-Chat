@@ -255,21 +255,20 @@ public class WalkieTalkieBlock extends BaseEntityBlock {
 
     public static void applyStackDataToBlock(WalkieTalkieBlockEntity block, ItemStack stack, Player placer) {
         if (block == null || stack == null) return;
+        UUID owner = placer != null ? placer.getUUID() : WalkieTalkieItem.getBlockOwner(stack);
+        if (owner != null) {
+            block.setOwnerUUID(owner);
+        }
         String freq = WalkieTalkieItem.getFrequency(stack);
         if (!freq.isEmpty()) {
+            if (owner != null) {
+                com.Theus452.walkietalkie.networking.WalkieBlockRegistry.clearRevocation(owner, freq);
+            }
             block.setFrequency(freq);
         }
         String name = WalkieTalkieItem.getChannelName(stack);
         if (!name.isEmpty()) {
             block.setChannelName(name);
-        }
-        if (placer != null) {
-            block.setOwnerUUID(placer.getUUID());
-        } else {
-            UUID owner = WalkieTalkieItem.getBlockOwner(stack);
-            if (owner != null) {
-                block.setOwnerUUID(owner);
-            }
         }
         block.setRelayEnabled(WalkieTalkieItem.getBlockRelayEnabled(stack));
     }

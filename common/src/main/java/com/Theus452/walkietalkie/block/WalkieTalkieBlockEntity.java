@@ -8,6 +8,9 @@ import com.Theus452.walkietalkie.util.WalkieFrequency;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtUtils;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientboundSoundPacket;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
@@ -24,8 +27,11 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class WalkieTalkieBlockEntity extends BlockEntity {
     private static final Logger LOGGER = LoggerFactory.getLogger("WalkieTalkie-BlockEntity");
@@ -35,6 +41,7 @@ public class WalkieTalkieBlockEntity extends BlockEntity {
     private static final String NBT_REPEATER = "isRepeater";
     private static final String NBT_RELAY_ENABLED = "relayEnabled";
     private static final String NBT_CHANNEL_NAME = "channelName";
+    private static final String NBT_CONNECTED_PLAYERS = "connectedPlayers";
 
     private static final double FALLBACK_BLOCK_RANGE = 16.0D;
 
@@ -43,6 +50,7 @@ public class WalkieTalkieBlockEntity extends BlockEntity {
     private boolean registeredInNetwork = false;
     private ResourceKey<Level> registeredDimension = null;
     public UUID ownerUUID;
+    private final Set<UUID> connectedPlayers = ConcurrentHashMap.newKeySet();
     public long lastMessageTick = -1L;
     private int decoyTicks = 0;
     private boolean repeater = false;
@@ -65,6 +73,7 @@ public class WalkieTalkieBlockEntity extends BlockEntity {
         if (this.frequency.equals(sanitized)) {
             return;
         }
+        clearConnectedPlayers();
         unregisterIfNeeded();
         this.frequency = sanitized;
         this.channelName = "";
@@ -100,6 +109,7 @@ public class WalkieTalkieBlockEntity extends BlockEntity {
 
     @Override
     public void setRemoved() {
+        clearConnectedPlayers();
         unregisterIfNeeded();
         super.setRemoved();
     }
@@ -109,23 +119,32 @@ public class WalkieTalkieBlockEntity extends BlockEntity {
         setChanged();
     }
 
-    public void playReceiveSound(Collection<ServerPlayer> listeners) {
-        if (!(level instanceof ServerLevel serverLevel) || listeners == null || listeners.isEmpty() || ModSounds.WALKIE_TALKIE_MSG_RECEIVER == null) {
+    public void playReceiveSound() {
+        playReceiveSound((ServerPlayer) null);
+    }
+
+    public void playReceiveSound(ServerPlayer sender) {
+        if (!(level instanceof ServerLevel serverLevel) || ModSounds.WALKIE_TALKIE_MSG_RECEIVER == null) {
             return;
         }
-        ClientboundSoundPacket soundPacket = new ClientboundSoundPacket(
-            Holder.direct(ModSounds.WALKIE_TALKIE_MSG_RECEIVER.get()),
-            SoundSource.BLOCKS,
+        serverLevel.playSound(
+            sender,
             worldPosition.getX() + 0.5D,
             worldPosition.getY() + 0.5D,
             worldPosition.getZ() + 0.5D,
-            1.0F,
-            1.0F,
-            serverLevel.random.nextLong()
+            ModSounds.WALKIE_TALKIE_MSG_RECEIVER.get(),
+            SoundSource.BLOCKS,
+            0.6F,
+            1.0F
         );
-        for (ServerPlayer listener : listeners) {
-            listener.connection.send(soundPacket);
-        }
+    }
+
+    public void playReceiveSound(Collection<ServerPlayer> listeners) {
+        playReceiveSound((ServerPlayer) null);
+    }
+
+    public void playReceiveSound(ServerPlayer sender, Collection<ServerPlayer> listeners) {
+        playReceiveSound(sender);
     }
 
     @Override
@@ -144,6 +163,19 @@ public class WalkieTalkieBlockEntity extends BlockEntity {
             }
             this.repeater = SafeNbt.bool(nbt, NBT_REPEATER, false);
             this.relayEnabled = SafeNbt.bool(nbt, NBT_RELAY_ENABLED, true);
+            this.connectedPlayers.clear();
+            if (nbt.contains(NBT_CONNECTED_PLAYERS, Tag.TAG_LIST)) {
+                ListTag list = nbt.getList(NBT_CONNECTED_PLAYERS, Tag.TAG_INT_ARRAY);
+                for (int i = 0; i < list.size(); i++) {
+                    try {
+                        UUID uuid = NbtUtils.loadUUID(list.get(i));
+                        if (uuid != null) {
+                            this.connectedPlayers.add(uuid);
+                        }
+                    } catch (RuntimeException ignored) {
+                    }
+                }
+            }
             this.registeredInNetwork = false;
             this.registeredDimension = null;
             registerIfNeeded();
@@ -152,6 +184,7 @@ public class WalkieTalkieBlockEntity extends BlockEntity {
             this.frequency = "";
             this.channelName = "";
             this.ownerUUID = null;
+            this.connectedPlayers.clear();
             this.repeater = false;
             this.relayEnabled = true;
             this.registeredInNetwork = false;
@@ -170,6 +203,13 @@ public class WalkieTalkieBlockEntity extends BlockEntity {
         }
         nbt.putBoolean(NBT_REPEATER, repeater);
         nbt.putBoolean(NBT_RELAY_ENABLED, relayEnabled);
+        if (!connectedPlayers.isEmpty()) {
+            ListTag list = new ListTag();
+            for (UUID uuid : connectedPlayers) {
+                list.add(NbtUtils.createUUID(uuid));
+            }
+            nbt.put(NBT_CONNECTED_PLAYERS, list);
+        }
     }
 
     @Override
@@ -213,6 +253,9 @@ public class WalkieTalkieBlockEntity extends BlockEntity {
         if (java.util.Objects.equals(this.ownerUUID, ownerUUID)) return;
         unregisterIfNeeded();
         this.ownerUUID = ownerUUID;
+        if (this.ownerUUID != null && !this.frequency.isEmpty()) {
+            WalkieBlockRegistry.clearRevocation(this.ownerUUID, this.frequency);
+        }
         registerIfNeeded();
         markDirtyAndSync();
     }
@@ -246,6 +289,46 @@ public class WalkieTalkieBlockEntity extends BlockEntity {
         markDirtyAndSync();
     }
 
+    public void addConnectedPlayer(UUID uuid) {
+        if (uuid == null) return;
+        if (connectedPlayers.add(uuid)) {
+            if (level != null && !frequency.isEmpty()) {
+                WalkieBlockRegistry.registerConnectedPlayer(uuid, frequency, worldPosition, level);
+            }
+            markDirtyAndSync();
+        }
+    }
+
+    public void removeConnectedPlayer(UUID uuid) {
+        if (uuid == null) return;
+        if (connectedPlayers.remove(uuid)) {
+            if (level != null && !frequency.isEmpty()) {
+                WalkieBlockRegistry.unregisterConnectedPlayer(uuid, frequency, worldPosition, level);
+            }
+            markDirtyAndSync();
+        }
+    }
+
+    public boolean isPlayerConnected(UUID uuid) {
+        return uuid != null && connectedPlayers.contains(uuid);
+    }
+
+    public Set<UUID> getConnectedPlayers() {
+        return Collections.unmodifiableSet(connectedPlayers);
+    }
+
+    public void clearConnectedPlayers() {
+        if (!connectedPlayers.isEmpty()) {
+            if (level != null && !frequency.isEmpty()) {
+                for (UUID uuid : connectedPlayers) {
+                    WalkieBlockRegistry.unregisterConnectedPlayer(uuid, frequency, worldPosition, level);
+                }
+            }
+            connectedPlayers.clear();
+            markDirtyAndSync();
+        }
+    }
+
     private void registerIfNeeded() {
         if (registeredInNetwork || frequency.isEmpty() || !(level instanceof ServerLevel serverLevel)) {
             return;
@@ -253,10 +336,14 @@ public class WalkieTalkieBlockEntity extends BlockEntity {
         if (ownerUUID != null && WalkieBlockRegistry.isRevoked(ownerUUID, frequency)) {
             this.frequency = "";
             this.channelName = "";
+            clearConnectedPlayers();
             markDirtyAndSync();
             return;
         }
         WalkieBlockRegistry.register(serverLevel, worldPosition, frequency, ownerUUID);
+        for (UUID playerUuid : connectedPlayers) {
+            WalkieBlockRegistry.registerConnectedPlayer(playerUuid, frequency, worldPosition, serverLevel);
+        }
         registeredInNetwork = true;
         registeredDimension = serverLevel.dimension();
     }
@@ -268,6 +355,9 @@ public class WalkieTalkieBlockEntity extends BlockEntity {
         }
         if (!frequency.isEmpty()) {
             if (level instanceof ServerLevel serverLevel) {
+                for (UUID playerUuid : connectedPlayers) {
+                    WalkieBlockRegistry.unregisterConnectedPlayer(playerUuid, frequency, worldPosition, serverLevel);
+                }
                 WalkieBlockRegistry.unregister(serverLevel, worldPosition, frequency, ownerUUID);
             } else if (registeredDimension != null) {
                 WalkieBlockRegistry.unregister(registeredDimension, worldPosition, frequency, ownerUUID);

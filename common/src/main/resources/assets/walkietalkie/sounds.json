@@ -20,7 +20,10 @@
   "msg_receiver": {
     "subtitles": "sounds.walkietalkie.msg_receiver",
     "sounds": [
-      "walkietalkie:msg_receiver"
+      {
+        "name": "walkietalkie:msg_receiver",
+        "attenuation_distance": 8
+      }
     ]
   },
   "walkie_button_click": {

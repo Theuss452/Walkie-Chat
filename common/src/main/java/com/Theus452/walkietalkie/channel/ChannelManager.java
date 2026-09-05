@@ -75,6 +75,7 @@ public final class ChannelManager {
         if (passwordProtected) {
             grantAccess(player, frequency);
         }
+        WalkieBlockRegistry.clearRevocation(player.getUUID(), frequency);
         tune(player, hand, frequency);
         sendResult(player, true, frequency, "gui.walkietalkie.success.created", ChannelActionType.CREATE, requestId);
         ConnectionManager.syncActiveChannels(player.server);
@@ -109,6 +110,7 @@ public final class ChannelManager {
             }
             grantAccess(player, frequency);
         }
+        WalkieBlockRegistry.clearRevocation(player.getUUID(), frequency);
         tune(player, hand, frequency);
         sendResult(player, true, frequency, "gui.walkietalkie.success.joined", ChannelActionType.JOIN, requestId);
         ConnectionManager.syncActiveChannels(player.server);
@@ -145,8 +147,25 @@ public final class ChannelManager {
             String rawName,
             long requestId
     ) {
+        createBlockChannel(player, pos, rawFrequency, rawName, false, "", requestId);
+    }
+
+    public static void createBlockChannel(
+            ServerPlayer player,
+            BlockPos pos,
+            String rawFrequency,
+            String rawName,
+            boolean passwordProtected,
+            String password,
+            long requestId
+    ) {
         WalkieTalkieBlockEntity block = getControllableBlock(player, pos, ChannelActionType.CREATE, requestId);
         if (block == null) {
+            return;
+        }
+        boolean isOwner = block.ownerUUID == null || block.ownerUUID.equals(player.getUUID());
+        if (!isOwner) {
+            sendResult(player, false, "", "message.walkietalkie.block.not_owner", ChannelActionType.CREATE, requestId);
             return;
         }
         String frequency = normalizeFrequency(rawFrequency);
@@ -157,6 +176,10 @@ public final class ChannelManager {
         }
         if (!isValidName(name)) {
             sendResult(player, false, "", "gui.walkietalkie.error.name", ChannelActionType.CREATE, requestId);
+            return;
+        }
+        if (passwordProtected && !isValidPassword(password)) {
+            sendResult(player, false, "", "gui.walkietalkie.error.password", ChannelActionType.CREATE, requestId);
             return;
         }
         ChannelRegistry registry = ChannelRegistry.get(player.server);
@@ -175,27 +198,35 @@ public final class ChannelManager {
                 name,
                 player.getUUID(),
                 player.getDisplayName().getString(),
-                false,
-                ""
+                passwordProtected,
+                password
         );
         if (definition == null) {
             sendResult(player, false, "", "gui.walkietalkie.error.frequency_used", ChannelActionType.CREATE, requestId);
             return;
         }
+        WalkieBlockRegistry.clearRevocation(player.getUUID(), frequency);
         tuneBlock(player, block, frequency, definition.name());
+        block.addConnectedPlayer(player.getUUID());
         registry.addMember(frequency, player.getUUID(), player.getDisplayName().getString(), player.server);
         sendResult(player, true, frequency, "gui.walkietalkie.success.created", ChannelActionType.CREATE, requestId);
         ConnectionManager.syncActiveChannels(player.server);
     }
 
-    public static void joinBlockChannel(ServerPlayer player, BlockPos pos, String rawFrequency, long requestId) {
-        WalkieTalkieBlockEntity block = getControllableBlock(player, pos, ChannelActionType.JOIN, requestId);
+    public static void joinBlockChannel(ServerPlayer player, BlockPos pos, String rawFrequency, String password, long requestId) {
+        WalkieTalkieBlockEntity block = com.Theus452.walkietalkie.util.WalkieSecurity.interactableWalkieBlock(player, pos);
         if (block == null) {
+            sendResult(player, false, "", "gui.walkietalkie.error.item", ChannelActionType.JOIN, requestId);
             return;
         }
         String frequency = normalizeFrequency(rawFrequency);
         if (!isValidFrequency(frequency)) {
             sendResult(player, false, "", "gui.walkietalkie.error.frequency", ChannelActionType.JOIN, requestId);
+            return;
+        }
+        boolean isOwner = block.ownerUUID == null || block.ownerUUID.equals(player.getUUID());
+        if (!isOwner && !block.getFrequency().isEmpty() && !block.getFrequency().equals(frequency)) {
+            sendResult(player, false, "", "message.walkietalkie.block.not_owner", ChannelActionType.JOIN, requestId);
             return;
         }
         ChannelRegistry registry = ChannelRegistry.get(player.server);
@@ -205,27 +236,58 @@ public final class ChannelManager {
             return;
         }
         if (definition.passwordProtected()) {
-            sendResult(player, false, "", "message.walkietalkie.block.private_forbidden", ChannelActionType.JOIN, requestId);
-            return;
+            if (!hasAccess(player, frequency)) {
+                if (!definition.matchesPassword(password)) {
+                    sendResult(player, false, "", "gui.walkietalkie.error.password", ChannelActionType.JOIN, requestId);
+                    return;
+                }
+                grantAccess(player, frequency);
+            }
         }
-        tuneBlock(player, block, frequency, definition.name());
+        WalkieBlockRegistry.clearRevocation(player.getUUID(), frequency);
+        if (isOwner) {
+            tuneBlock(player, block, frequency, definition.name());
+        }
+        block.addConnectedPlayer(player.getUUID());
         registry.addMember(frequency, player.getUUID(), player.getDisplayName().getString(), player.server);
+        block.playReceiveSound((ServerPlayer) null);
         sendResult(player, true, frequency, "gui.walkietalkie.success.joined", ChannelActionType.JOIN, requestId);
         ConnectionManager.syncActiveChannels(player.server);
     }
 
+    public static void joinBlockChannel(ServerPlayer player, BlockPos pos, String rawFrequency, long requestId) {
+        joinBlockChannel(player, pos, rawFrequency, "", requestId);
+    }
+
     public static void leaveBlockChannel(ServerPlayer player, BlockPos pos, long requestId) {
-        WalkieTalkieBlockEntity block = getControllableBlock(player, pos, ChannelActionType.LEAVE, requestId);
+        WalkieTalkieBlockEntity block = com.Theus452.walkietalkie.util.WalkieSecurity.interactableWalkieBlock(player, pos);
         if (block == null) {
+            sendResult(player, false, "", "gui.walkietalkie.error.item", ChannelActionType.LEAVE, requestId);
             return;
         }
         String oldFreq = block.getFrequency();
         if (!oldFreq.isEmpty()) {
-            block.setFrequency("");
-            block.setChannelName("");
-            if (!hasTunedWalkie(player, oldFreq) && WalkieBlockRegistry.getOwnedBlockCount(player.getUUID(), oldFreq) == 0) {
+            boolean isOwner = block.ownerUUID != null && block.ownerUUID.equals(player.getUUID());
+            if (isOwner) {
+                block.setFrequency("");
+                block.setChannelName("");
+                block.clearConnectedPlayers();
+            } else {
+                block.removeConnectedPlayer(player.getUUID());
+            }
+            if (!hasTunedWalkie(player, oldFreq)
+                    && WalkieBlockRegistry.getOwnedBlockCount(player.getUUID(), oldFreq) == 0
+                    && !WalkieBlockRegistry.isPlayerConnectedToAnyBlock(player.getUUID(), oldFreq)) {
                 ConnectionManager.cancelDisconnect(player, oldFreq);
                 ChannelRegistry.get(player.server).removeMember(oldFreq, player.getUUID(), player.server);
+            }
+            Component leaveMessage = Component.literal("[Walkie-Talkie] ").withStyle(ChatFormatting.GREEN)
+                    .append(Component.translatable("message.walkietalkie.leave.other", player.getDisplayName())
+                            .withStyle(ChatFormatting.YELLOW));
+            for (ServerPlayer otherPlayer : player.server.getPlayerList().getPlayers()) {
+                if (otherPlayer != player && isPlayerOnFrequency(otherPlayer, oldFreq)) {
+                    otherPlayer.sendSystemMessage(leaveMessage);
+                }
             }
             ConnectionManager.removeEmptyChannels(player.server);
         }
@@ -239,13 +301,26 @@ public final class ChannelManager {
             return;
         }
         WalkieBlockRegistry.disconnectAllForOwner(player.server, player.getUUID(), frequency);
-        if (!hasTunedWalkie(player, frequency)) {
+        if (!hasTunedWalkie(player, frequency) && !WalkieBlockRegistry.isPlayerConnectedToAnyBlock(player.getUUID(), frequency)) {
             ConnectionManager.cancelDisconnect(player, frequency);
             ChannelRegistry.get(player.server).removeMember(frequency, player.getUUID(), player.server);
         }
         ConnectionManager.removeEmptyChannels(player.server);
         sendResult(player, true, "", "gui.walkietalkie.success.left", ChannelActionType.DISCONNECT_ALL, requestId);
         ConnectionManager.syncActiveChannels(player.server);
+    }
+
+    public static boolean isPlayerOnFrequency(ServerPlayer player, String frequency) {
+        if (player == null || frequency == null || frequency.isEmpty()) {
+            return false;
+        }
+        if (hasTunedWalkie(player, frequency)) {
+            return true;
+        }
+        if (WalkieBlockRegistry.hasOwnedFrequency(player.getUUID(), frequency)) {
+            return true;
+        }
+        return WalkieBlockRegistry.isPlayerConnectedToAnyBlock(player.getUUID(), frequency);
     }
 
     public static boolean canAccess(ServerPlayer player, String frequency) {
@@ -307,7 +382,7 @@ public final class ChannelManager {
             java.util.List<java.util.UUID> membersCopy = new java.util.ArrayList<>(definition.members());
             for (java.util.UUID memberId : membersCopy) {
                 ServerPlayer player = server.getPlayerList().getPlayer(memberId);
-                if (player != null && !hasTunedWalkie(player, freq) && !WalkieBlockRegistry.hasOwnedFrequency(memberId, freq)) {
+                if (player != null && !hasTunedWalkie(player, freq) && !WalkieBlockRegistry.hasOwnedFrequency(memberId, freq) && !WalkieBlockRegistry.isPlayerConnectedToAnyBlock(memberId, freq)) {
                     registry.removeMember(freq, memberId, server);
                     changed = true;
                 }
@@ -392,7 +467,7 @@ public final class ChannelManager {
                 .append(Component.translatable("message.walkietalkie.leave.other", player.getDisplayName())
                         .withStyle(ChatFormatting.YELLOW));
         for (ServerPlayer otherPlayer : player.server.getPlayerList().getPlayers()) {
-            if (otherPlayer != player && hasTunedWalkie(otherPlayer, frequency)) {
+            if (otherPlayer != player && isPlayerOnFrequency(otherPlayer, frequency)) {
                 otherPlayer.sendSystemMessage(leaveMessage);
             }
         }
@@ -409,7 +484,9 @@ public final class ChannelManager {
         if (oldFrequency.equals(frequency)) {
             return;
         }
-        boolean keepsOldFrequency = hasOtherWalkieWithFrequency(player, oldFrequency, stack) || WalkieBlockRegistry.hasOwnedFrequency(player.getUUID(), oldFrequency);
+        boolean keepsOldFrequency = hasOtherWalkieWithFrequency(player, oldFrequency, stack)
+                || WalkieBlockRegistry.hasOwnedFrequency(player.getUUID(), oldFrequency)
+                || WalkieBlockRegistry.isPlayerConnectedToAnyBlock(player.getUUID(), oldFrequency);
         if (!oldFrequency.isEmpty() && !keepsOldFrequency) {
             ConnectionManager.cancelDisconnect(player, oldFrequency);
             ChannelRegistry.get(player.server).removeMember(oldFrequency, player.getUUID(), player.server);
@@ -417,7 +494,7 @@ public final class ChannelManager {
                     .append(Component.translatable("message.walkietalkie.leave.other", player.getDisplayName())
                             .withStyle(ChatFormatting.YELLOW));
             for (ServerPlayer otherPlayer : player.server.getPlayerList().getPlayers()) {
-                if (otherPlayer != player && hasTunedWalkie(otherPlayer, oldFrequency)) {
+                if (otherPlayer != player && isPlayerOnFrequency(otherPlayer, oldFrequency)) {
                     otherPlayer.sendSystemMessage(leaveMessage);
                 }
             }
@@ -426,6 +503,7 @@ public final class ChannelManager {
         player.getInventory().setChanged();
         player.playNotifySound(ModSounds.WALKIE_TALKIE_CHANGE_CHANNEL.get(), SoundSource.PLAYERS, 1.0F, 1.0F);
         if (!frequency.isEmpty()) {
+            WalkieBlockRegistry.clearRevocation(player.getUUID(), frequency);
             ChannelRegistry.get(player.server).addMember(frequency, player.getUUID(), player.getDisplayName().getString(), player.server);
         }
         if (!oldFrequency.isEmpty() && !keepsOldFrequency) {
@@ -525,7 +603,9 @@ public final class ChannelManager {
         block.setFrequency(frequency);
         block.setChannelName(name);
         if (!oldFreq.isEmpty() && !oldFreq.equals(frequency)) {
-            if (!hasTunedWalkie(player, oldFreq) && WalkieBlockRegistry.getOwnedBlockCount(player.getUUID(), oldFreq) == 0) {
+            if (!hasTunedWalkie(player, oldFreq)
+                    && WalkieBlockRegistry.getOwnedBlockCount(player.getUUID(), oldFreq) == 0
+                    && !WalkieBlockRegistry.isPlayerConnectedToAnyBlock(player.getUUID(), oldFreq)) {
                 ConnectionManager.cancelDisconnect(player, oldFreq);
                 ChannelRegistry.get(player.server).removeMember(oldFreq, player.getUUID(), player.server);
             }

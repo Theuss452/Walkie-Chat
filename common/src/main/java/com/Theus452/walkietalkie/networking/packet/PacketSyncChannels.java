@@ -72,5 +72,10 @@ public final class PacketSyncChannels {
 
     public static void handle(PacketSyncChannels pkt) {
         com.Theus452.walkietalkie.client.ChannelCache.set(pkt.channels());
+        java.util.Set<String> activeFreqs = new java.util.HashSet<>();
+        for (ChannelInfo ch : pkt.channels()) {
+            activeFreqs.add(ch.frequency());
+        }
+        com.Theus452.walkietalkie.client.ChannelMessageCache.retainFrequencies(activeFreqs);
     }
 }

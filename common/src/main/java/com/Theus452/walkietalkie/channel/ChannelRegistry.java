@@ -162,6 +162,13 @@ public final class ChannelRegistry extends SavedData {
             if (removed) {
                 if (definition.members().isEmpty() && !WalkieBlockRegistry.hasFrequency(frequency)) {
                     channels.remove(frequency);
+                } else {
+                    if (playerId.equals(definition.owner()) && !definition.members().isEmpty()) {
+                        UUID nextOwner = definition.members().get(0);
+                        String nextOwnerName = definition.memberNames().isEmpty() ? "" : definition.memberNames().get(0);
+                        definition.setOwner(nextOwner, nextOwnerName);
+                        definition.privateAccess().add(nextOwner);
+                    }
                 }
                 setDirty();
                 ConnectionManager.syncActiveChannels(server);

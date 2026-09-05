@@ -32,6 +32,12 @@ public class ServerGamePacketListenerImplMixin {
         String content = packet.message();
         if (content.startsWith("/")) return;
 
+        if (com.Theus452.walkietalkie.compat.AttractToChatCompat.isVocallyMuted(player)) {
+            player.displayClientMessage(Component.translatable("message.walkietalkie.vocal_muted"), true);
+            ci.cancel();
+            return;
+        }
+
         ItemStack stack = player.getItemInHand(InteractionHand.MAIN_HAND);
         if (!(stack.getItem() instanceof WalkieTalkieItem)) {
             stack = player.getItemInHand(InteractionHand.OFF_HAND);
@@ -69,7 +75,7 @@ public class ServerGamePacketListenerImplMixin {
             return;
         }
 
-        double range = Platform.getHelper().getChatRange();
+        double range = com.Theus452.walkietalkie.compat.AttractToChatCompat.getEffectiveProximityRange(content, Platform.getHelper().getChatRange());
         List<ServerPlayer> players = player.getServer().getPlayerList().getPlayers();
         Component formattedMessage = Component.translatable("chat.type.text", player.getDisplayName(), content);
 
@@ -97,38 +103,5 @@ public class ServerGamePacketListenerImplMixin {
         }
 
         ci.cancel();
-    }
-
-    private void broadcastRadioMessage(String msg, String freq) {
-        List<ServerPlayer> players = player.getServer().getPlayerList().getPlayers();
-        List<ServerPlayer> receivers = new ArrayList<>();
-
-        Component hoverText = Component.translatable("tooltip.walkietalkie.frequency.chat", freq);
-        Component chatMessage = Component.literal("§a[Walkie-Talkie]§7[" + freq + "]")
-                .withStyle(style -> style.withHoverEvent(new net.minecraft.network.chat.HoverEvent(net.minecraft.network.chat.HoverEvent.Action.SHOW_TEXT, hoverText)))
-                .copy()
-                .append(Component.literal(" §f<" + player.getDisplayName().getString() + "> " + msg));
-
-        player.sendSystemMessage(chatMessage);
-        WalkieNetworkHandler.sendPushMessage(player, freq, player.getName().getString(), msg);
-        player.playNotifySound(com.Theus452.walkietalkie.sound.ModSounds.WALKIE_TALKIE_SEND_MSG.get(), net.minecraft.sounds.SoundSource.PLAYERS, 0.6f, 1.0f);
-
-        for (ServerPlayer receiver : players) {
-            if (receiver == player) continue;
-            if (ChannelManager.hasTunedWalkie(receiver, freq)) {
-                receiver.sendSystemMessage(chatMessage);
-                WalkieNetworkHandler.sendPushMessage(receiver, freq, player.getName().getString(), msg);
-                receivers.add(receiver);
-                
-                com.Theus452.walkietalkie.util.IncomingMessageSoundLimiter.SoundDecision soundDecision = com.Theus452.walkietalkie.util.IncomingMessageSoundLimiter.evaluate(receiver);
-                if (soundDecision.shouldPlay()) {
-                    receiver.playNotifySound(com.Theus452.walkietalkie.sound.ModSounds.WALKIE_TALKIE_MSG_RECEIVER.get(), net.minecraft.sounds.SoundSource.PLAYERS, soundDecision.volume(), soundDecision.pitch());
-                }
-            }
-        }
-
-        if (WalkieChatCallback.WALKIE_BROADCAST.hasListeners()) {
-            WalkieChatCallback.WALKIE_BROADCAST.invoke(new WalkieChatCallback.BroadcastData(player, msg, freq, receivers));
-        }
     }
 }

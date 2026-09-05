@@ -52,4 +52,14 @@ public final class ChannelMessageCache {
     public static void clear() {
         CACHE.clear();
     }
+
+    public static void clear(String frequency) {
+        if (frequency == null) return;
+        CACHE.remove(frequency);
+    }
+
+    public static void retainFrequencies(Collection<String> activeFrequencies) {
+        if (activeFrequencies == null) return;
+        CACHE.keySet().retainAll(activeFrequencies);
+    }
 }

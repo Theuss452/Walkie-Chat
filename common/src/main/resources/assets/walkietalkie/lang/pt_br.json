@@ -92,5 +92,13 @@
   "gui.walkietalkie.popup.leave_all_blocks": "Desconectar todos os meus blocos",
   "gui.walkietalkie.popup.leave_radio_blocks_desc": "Você possui %s bloco(s) ativo(s) nesta frequência.",
   "gui.walkietalkie.popup.leave_block_multi_desc": "Você possui %s bloco(s) ativo(s) nesta frequência.",
-  "gui.walkietalkie.popup.leave_desc": "Tem certeza que deseja se desconectar deste canal?"
+  "gui.walkietalkie.popup.leave_desc": "Tem certeza que deseja se desconectar deste canal?",
+  "gui.walkietalkie.popup.join_block_title": "Entrar na Frequência?",
+  "gui.walkietalkie.popup.join_block_desc": "Este Walkie Block está sintonizado em %s MHz. Deseja entrar nesta frequência?",
+  "gui.walkietalkie.popup.join": "Entrar",
+  "gui.walkietalkie.popup.block_password_title": "Senha do Canal",
+  "gui.walkietalkie.popup.block_password_desc": "Digite a senha para acessar esta frequência:",
+  "gui.walkietalkie.popup.yes": "Sim",
+  "gui.walkietalkie.popup.no": "Não",
+  "message.walkietalkie.vocal_muted": "§cVocê está mudo no chat de voz e não pode falar no walkie-talkie."
 }

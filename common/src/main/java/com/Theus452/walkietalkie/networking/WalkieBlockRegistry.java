@@ -21,9 +21,54 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class WalkieBlockRegistry {
     private static final Map<String, Set<GlobalPos>> BY_FREQUENCY = new ConcurrentHashMap<>();
     private static final Map<UUID, Map<String, Set<GlobalPos>>> BY_OWNER = new ConcurrentHashMap<>();
+    private static final Map<UUID, Map<String, Set<GlobalPos>>> CONNECTED_PLAYERS = new ConcurrentHashMap<>();
     private static final Map<String, Long> REVOCATIONS = new ConcurrentHashMap<>();
 
     private WalkieBlockRegistry() {
+    }
+
+    public static void registerConnectedPlayer(UUID player, String frequency, BlockPos pos, Level level) {
+        if (player == null || frequency == null || frequency.isEmpty() || pos == null || level == null) return;
+        String safeFrequency = WalkieFrequency.sanitize(frequency);
+        GlobalPos globalPos = GlobalPos.of(level.dimension(), pos);
+        CONNECTED_PLAYERS.computeIfAbsent(player, key -> new ConcurrentHashMap<>())
+                .computeIfAbsent(safeFrequency, key -> ConcurrentHashMap.newKeySet())
+                .add(globalPos);
+    }
+
+    public static void unregisterConnectedPlayer(UUID player, String frequency, BlockPos pos, Level level) {
+        if (player == null || frequency == null || frequency.isEmpty() || pos == null || level == null) return;
+        String safeFrequency = WalkieFrequency.sanitize(frequency);
+        GlobalPos globalPos = GlobalPos.of(level.dimension(), pos);
+        Map<String, Set<GlobalPos>> freqs = CONNECTED_PLAYERS.get(player);
+        if (freqs == null) return;
+        Set<GlobalPos> blocks = freqs.get(safeFrequency);
+        if (blocks != null) {
+            blocks.remove(globalPos);
+            if (blocks.isEmpty()) {
+                freqs.remove(safeFrequency);
+            }
+        }
+        if (freqs.isEmpty()) {
+            CONNECTED_PLAYERS.remove(player);
+        }
+    }
+
+    public static boolean isPlayerConnectedToAnyBlock(UUID player, String frequency) {
+        if (player == null || frequency == null || frequency.isEmpty()) return false;
+        String safeFrequency = WalkieFrequency.sanitize(frequency);
+        Map<String, Set<GlobalPos>> freqs = CONNECTED_PLAYERS.get(player);
+        if (freqs == null) return false;
+        Set<GlobalPos> blocks = freqs.get(safeFrequency);
+        return blocks != null && !blocks.isEmpty();
+    }
+
+    public static void addConnectedFrequencies(UUID player, Set<String> destination) {
+        if (player == null || destination == null) return;
+        Map<String, Set<GlobalPos>> freqs = CONNECTED_PLAYERS.get(player);
+        if (freqs != null) {
+            destination.addAll(freqs.keySet());
+        }
     }
 
     public static void register(ServerLevel level, BlockPos pos, String frequency, UUID owner) {
@@ -207,6 +252,7 @@ public final class WalkieBlockRegistry {
     public static void clearOnStop() {
         BY_FREQUENCY.clear();
         BY_OWNER.clear();
+        CONNECTED_PLAYERS.clear();
         REVOCATIONS.clear();
     }
 

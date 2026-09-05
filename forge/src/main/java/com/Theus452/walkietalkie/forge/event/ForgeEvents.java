@@ -4,18 +4,15 @@ import com.Theus452.walkietalkie.forge.commands.ForgeCommands;
 import com.Theus452.walkietalkie.channel.ChannelManager;
 import com.Theus452.walkietalkie.item.WalkieTalkieItem;
 import com.Theus452.walkietalkie.platform.Platform;
-import com.Theus452.walkietalkie.sound.ModSounds;
 import com.Theus452.walkietalkie.util.ConnectionManager;
-import com.Theus452.walkietalkie.util.IncomingMessageSoundLimiter;
+import com.Theus452.walkietalkie.util.WalkieMessageHelper;
+import com.Theus452.walkietalkie.compat.AttractToChatCompat;
 import com.mojang.brigadier.CommandDispatcher;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.HoverEvent;
-import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.ServerChatEvent;
@@ -39,6 +36,12 @@ public class ForgeEvents {
     @SubscribeEvent
     public void onServerChat(ServerChatEvent event) {
         ServerPlayer sender = event.getPlayer();
+        if (AttractToChatCompat.isVocallyMuted(sender)) {
+            event.setCanceled(true);
+            sender.displayClientMessage(Component.translatable("message.walkietalkie.vocal_muted"), true);
+            return;
+        }
+
         ItemStack walkieStack = sender.getMainHandItem();
         if (!(walkieStack.getItem() instanceof WalkieTalkieItem)) {
             walkieStack = sender.getOffhandItem();
@@ -63,47 +66,30 @@ public class ForgeEvents {
                 sender.sendSystemMessage(Component.translatable("gui.walkietalkie.error.private_access"));
                 return;
             }
+            WalkieMessageHelper.broadcastMessage(server, sender, frequency, event.getRawText());
+            return;
+        }
 
-            int senderWalkieTalkieCount = countWalkieTalkies(sender);
-            sender.sendSystemMessage(createWalkieTalkieMessage(sender, event.getRawText(), frequency, senderWalkieTalkieCount > 1));
-            sender.playNotifySound(ModSounds.WALKIE_TALKIE_SEND_MSG.get(), SoundSource.PLAYERS, 0.6F, 1.0F);
-            com.Theus452.walkietalkie.networking.WalkieNetworkHandler.sendPushMessage(sender, frequency, sender.getName().getString(), event.getRawText());
+        com.Theus452.walkietalkie.block.WalkieTalkieBlockEntity nearbyWalkie = WalkieMessageHelper.findNearbyActiveBlock(sender);
+        if (nearbyWalkie != null) {
+            WalkieMessageHelper.broadcastMessage(server, sender, nearbyWalkie.getFrequency(), event.getRawText());
+            return;
+        }
 
-            int receivers = 0;
-            for (ServerPlayer receiver : server.getPlayerList().getPlayers()) {
-                if (receiver == sender) continue;
-                if (ChannelManager.hasTunedWalkie(receiver, frequency)) {
-                    int walkieTalkieCount = countWalkieTalkies(receiver);
-                    Component messageToSend = createWalkieTalkieMessage(sender, event.getRawText(), frequency, walkieTalkieCount > 1);
-                    receiver.sendSystemMessage(messageToSend);
-                    com.Theus452.walkietalkie.networking.WalkieNetworkHandler.sendPushMessage(receiver, frequency, sender.getName().getString(), event.getRawText());
-                    IncomingMessageSoundLimiter.SoundDecision soundDecision = IncomingMessageSoundLimiter.evaluate(receiver);
-                    if (soundDecision.shouldPlay()) {
-                        receiver.playNotifySound(ModSounds.WALKIE_TALKIE_MSG_RECEIVER.get(), SoundSource.PLAYERS, soundDecision.volume(), soundDecision.pitch());
-                    }
-                    receivers++;
-                }
+        Component formattedMessage = Component.translatable("chat.type.text", sender.getDisplayName(), Component.literal(event.getRawText()));
+        double currentChatRange = AttractToChatCompat.getEffectiveProximityRange(event.getRawText(), Platform.getHelper().getChatRange());
+        int recipientsFound = 0;
+
+        for (ServerPlayer recipient : server.getPlayerList().getPlayers()) {
+            if (sender.distanceToSqr(recipient) <= currentChatRange * currentChatRange) {
+                recipient.sendSystemMessage(formattedMessage);
+                recipientsFound++;
             }
+        }
 
-            if (receivers == 0) {
-                sender.sendSystemMessage(Component.translatable("message.walkietalkie.no_one_on_frequency").withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC));
-            }
-        } else {
-            Component formattedMessage = Component.translatable("chat.type.text", sender.getDisplayName(), Component.literal(event.getRawText()));
-            double currentChatRange = Platform.getHelper().getChatRange();
-            int recipientsFound = 0;
-
-            for (ServerPlayer recipient : server.getPlayerList().getPlayers()) {
-                if (sender.distanceToSqr(recipient) <= currentChatRange * currentChatRange) {
-                    recipient.sendSystemMessage(formattedMessage);
-                    recipientsFound++;
-                }
-            }
-
-            if (recipientsFound <= 1 && server.getPlayerList().getPlayerCount() > 1) {
-                sender.sendSystemMessage(Component.translatable("message.walkietalkie.no_one_nearby")
-                        .withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC));
-            }
+        if (recipientsFound <= 1 && server.getPlayerList().getPlayerCount() > 1) {
+            sender.sendSystemMessage(Component.translatable("message.walkietalkie.no_one_nearby")
+                    .withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC));
         }
     }
 
@@ -127,36 +113,5 @@ public class ForgeEvents {
         if (event.phase == TickEvent.Phase.END) {
             ConnectionManager.tick(event.getServer());
         }
-    }
-
-    private static int countWalkieTalkies(ServerPlayer player) {
-        int count = 0;
-        for (ItemStack stack : player.getInventory().items) {
-            if (stack.getItem() instanceof WalkieTalkieItem) {
-                count++;
-            }
-        }
-        for (ItemStack stack : player.getInventory().offhand) {
-            if (stack.getItem() instanceof WalkieTalkieItem) {
-                count++;
-            }
-        }
-        return count;
-    }
-
-    private static Component createWalkieTalkieMessage(ServerPlayer sender, String rawText, String frequency, boolean showFrequencyInText) {
-        Component hoverText = Component.translatable("tooltip.walkietalkie.frequency.chat", frequency);
-        MutableComponent prefix;
-
-        if (showFrequencyInText) {
-            prefix = Component.literal("§a[Walkie-Talkie]§7[" + frequency + "]")
-                    .withStyle(style -> style.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, hoverText)));
-        } else {
-            prefix = Component.literal("§a[Walkie-Talkie]")
-                    .withStyle(style -> style.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, hoverText)));
-        }
-
-        Component messageBody = Component.literal(" §f<" + sender.getDisplayName().getString() + "> " + rawText);
-        return prefix.append(messageBody);
     }
 }

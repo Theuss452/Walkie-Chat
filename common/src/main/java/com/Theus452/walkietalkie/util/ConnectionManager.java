@@ -73,7 +73,7 @@ public final class ConnectionManager {
                 .append(Component.translatable("message.walkietalkie.join.other", player.getDisplayName())
                         .withStyle(ChatFormatting.YELLOW));
         for (ServerPlayer otherPlayer : player.server.getPlayerList().getPlayers()) {
-            if (otherPlayer != player && ChannelManager.hasTunedWalkie(otherPlayer, frequency)) {
+            if (otherPlayer != player && ChannelManager.isPlayerOnFrequency(otherPlayer, frequency)) {
                 otherPlayer.sendSystemMessage(joinMessage);
             }
         }
@@ -140,19 +140,6 @@ public final class ConnectionManager {
         Set<UUID> onlinePlayers = new HashSet<>();
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             onlinePlayers.add(player.getUUID());
-        }
-        for (UUID playerId : new ArrayList<>(ACTIVE_FREQUENCIES.keySet())) {
-            if (!onlinePlayers.contains(playerId)) {
-                Set<String> freqs = ACTIVE_FREQUENCIES.get(playerId);
-                if (freqs != null) {
-                    for (String freq : new ArrayList<>(freqs)) {
-                        ChannelRegistry.ChannelDefinition definition = ChannelRegistry.get(server).getChannel(freq);
-                        if (definition != null && playerId.equals(definition.owner())) {
-                            ChannelRegistry.get(server).removeMember(freq, playerId, server);
-                        }
-                    }
-                }
-            }
         }
         ACTIVE_FREQUENCIES.keySet().removeIf(playerId -> !onlinePlayers.contains(playerId));
         LAST_SENT_HASHES.keySet().removeIf(playerId -> !onlinePlayers.contains(playerId));
@@ -275,6 +262,7 @@ public final class ConnectionManager {
     private static Set<String> collectCurrentFrequencies(ServerPlayer player) {
         Set<String> frequencies = new HashSet<>();
         WalkieBlockRegistry.addOwnedFrequencies(player.getUUID(), frequencies);
+        WalkieBlockRegistry.addConnectedFrequencies(player.getUUID(), frequencies);
         collectCurrentFrequencies(player, player.getInventory().items, frequencies);
         collectCurrentFrequencies(player, player.getInventory().offhand, frequencies);
         return frequencies;
@@ -311,7 +299,7 @@ public final class ConnectionManager {
                             ).withStyle(ChatFormatting.YELLOW));
                     for (ServerPlayer otherPlayer : server.getPlayerList().getPlayers()) {
                         if (!otherPlayer.getUUID().equals(playerId)
-                                && ChannelManager.hasTunedWalkie(otherPlayer, frequency)) {
+                                && ChannelManager.isPlayerOnFrequency(otherPlayer, frequency)) {
                             otherPlayer.sendSystemMessage(lostMessage);
                         }
                     }
@@ -351,6 +339,9 @@ public final class ConnectionManager {
             }
         }
         if (WalkieBlockRegistry.hasOwnedFrequency(player.getUUID(), frequency)) {
+            count++;
+        }
+        if (WalkieBlockRegistry.isPlayerConnectedToAnyBlock(player.getUUID(), frequency)) {
             count++;
         }
         return count;

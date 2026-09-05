@@ -38,6 +38,7 @@ public class C2S_WalkieBlockMessagePacket {
 
         WalkieTalkieBlockEntity blockEntity = WalkieSecurity.interactableWalkieBlock(player, packet.pos);
         if (blockEntity == null || !blockEntity.isActive() || !blockEntity.isRelayEnabled()) return;
+        if (!com.Theus452.walkietalkie.channel.ChannelManager.canAccess(player, blockEntity.getFrequency())) return;
         if (!ServerRateLimiter.allow(player, "walkietalkie:message_block", 5L)) return;
         WalkieMessageHelper.broadcastMessage(player.server, player, blockEntity.getFrequency(), message);
     }

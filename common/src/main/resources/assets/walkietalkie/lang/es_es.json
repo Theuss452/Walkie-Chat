@@ -88,5 +88,13 @@
   "gui.walkietalkie.popup.leave_all_blocks": "Desconectar todos mis bloques",
   "gui.walkietalkie.popup.leave_radio_blocks_desc": "Tienes %s bloque(s) activo(s) en esta frecuencia.",
   "gui.walkietalkie.popup.leave_block_multi_desc": "Tienes %s bloque(s) activo(s) en esta frecuencia.",
-  "gui.walkietalkie.popup.leave_desc": "¿Estás seguro de que deseas desconectarte de este canal?"
+  "gui.walkietalkie.popup.leave_desc": "¿Estás seguro de que deseas desconectarte de este canal?",
+  "gui.walkietalkie.popup.join_block_title": "¿Unirse a la Frecuencia?",
+  "gui.walkietalkie.popup.join_block_desc": "Este Walkie Block está sintonizado en %s MHz. ¿Deseas unirte a esta frecuencia?",
+  "gui.walkietalkie.popup.join": "Unirse",
+  "gui.walkietalkie.popup.block_password_title": "Contraseña del Canal",
+  "gui.walkietalkie.popup.block_password_desc": "Introduce la contraseña para acceder a esta frecuencia:",
+  "gui.walkietalkie.popup.yes": "Sí",
+  "gui.walkietalkie.popup.no": "No",
+  "message.walkietalkie.vocal_muted": "§cEstás silenciado vocalmente y no puedes hablar por el walkie-talkie."
 }

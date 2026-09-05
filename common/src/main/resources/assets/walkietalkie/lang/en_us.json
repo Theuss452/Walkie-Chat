@@ -92,5 +92,13 @@
   "gui.walkietalkie.popup.leave_all_blocks": "Disconnect all my blocks",
   "gui.walkietalkie.popup.leave_radio_blocks_desc": "You have %s active block(s) on this frequency.",
   "gui.walkietalkie.popup.leave_block_multi_desc": "You have %s active block(s) on this frequency.",
-  "gui.walkietalkie.popup.leave_desc": "Are you sure you want to disconnect from this channel?"
+  "gui.walkietalkie.popup.leave_desc": "Are you sure you want to disconnect from this channel?",
+  "gui.walkietalkie.popup.join_block_title": "Join Frequency?",
+  "gui.walkietalkie.popup.join_block_desc": "This Walkie Block is tuned to %s MHz. Do you want to join this frequency?",
+  "gui.walkietalkie.popup.join": "Join",
+  "gui.walkietalkie.popup.block_password_title": "Channel Password",
+  "gui.walkietalkie.popup.block_password_desc": "Enter the password to access this frequency:",
+  "gui.walkietalkie.popup.yes": "Yes",
+  "gui.walkietalkie.popup.no": "No",
+  "message.walkietalkie.vocal_muted": "§cYou are vocally muted and cannot speak on the walkie-talkie."
 }
