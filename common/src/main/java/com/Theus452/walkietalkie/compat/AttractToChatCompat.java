@@ -75,13 +75,18 @@ public final class AttractToChatCompat {
             return;
         }
         try {
-            Object rangeValue = configValueGetMethod.invoke(hearingRangeValue);
-            if (!(rangeValue instanceof Number number)) {
-                return;
-            }
-            double range = number.doubleValue();
-            if (!Double.isFinite(range) || range < 0.0D) {
-                return;
+            double range = 16.0D;
+            if (configValueGetMethod != null && hearingRangeValue != null) {
+                try {
+                    Object rangeValue = configValueGetMethod.invoke(hearingRangeValue);
+                    if (rangeValue instanceof Number number) {
+                        double customRange = number.doubleValue();
+                        if (Double.isFinite(customRange) && customRange >= 0.0D) {
+                            range = customRange;
+                        }
+                    }
+                } catch (Exception ignored) {
+                }
             }
             Object score = messageScoreConstructor.newInstance(message, sender.getUUID());
             blockAttractionMethod.invoke(null, level, position, range, score);
@@ -91,7 +96,11 @@ public final class AttractToChatCompat {
     }
 
     private static boolean isAvailable() {
-        return Platform.HELPER.isModLoaded(MOD_ID);
+        try {
+            return Platform.getHelper().isModLoaded(MOD_ID);
+        } catch (IllegalStateException | LinkageError ignored) {
+            return false;
+        }
     }
 
     private static synchronized Method getVocalMuteMethod() {
@@ -124,27 +133,33 @@ public final class AttractToChatCompat {
 
     private static synchronized boolean resolveBlockAttractionHook() {
         if (blockAttractionLookupComplete) {
-            return blockAttractionMethod != null && messageScoreConstructor != null
-                    && configValueGetMethod != null && hearingRangeValue != null;
+            return blockAttractionMethod != null && messageScoreConstructor != null;
         }
         blockAttractionLookupComplete = true;
         try {
             Class<?> engineClass = Class.forName("com.bielzinrx.attracttochat.engine.AtcEngine");
             Class<?> scoreClass = Class.forName("com.bielzinrx.attracttochat.engine.MessageScore");
-            Class<?> configClass = Class.forName("com.bielzinrx.attracttochat.config.AttractToChatConfig");
-            Field commonField = configClass.getField("COMMON");
-            Object commonConfig = commonField.get(null);
-            Field hearingRangeField = commonConfig.getClass().getField("hearingRange");
-            hearingRangeValue = hearingRangeField.get(commonConfig);
-            configValueGetMethod = hearingRangeValue.getClass().getMethod("get");
             messageScoreConstructor = scoreClass.getConstructor(String.class, java.util.UUID.class);
             blockAttractionMethod = engineClass.getMethod("attractMobsAtPosition",
                     ServerLevel.class, BlockPos.class, double.class, scoreClass);
+
+            try {
+                Class<?> configClass = Class.forName("com.bielzinrx.attracttochat.config.AttractToChatConfig");
+                Field commonField = configClass.getField("COMMON");
+                Object commonConfig = commonField.get(null);
+                if (commonConfig != null) {
+                    Field hearingRangeField = commonConfig.getClass().getField("hearingRange");
+                    hearingRangeValue = hearingRangeField.get(commonConfig);
+                    if (hearingRangeValue != null) {
+                        configValueGetMethod = hearingRangeValue.getClass().getMethod("get");
+                    }
+                }
+            } catch (Exception ignored) {
+            }
         } catch (ReflectiveOperationException | LinkageError exception) {
             reportBlockAttractionFailure(exception);
         }
-        return blockAttractionMethod != null && messageScoreConstructor != null
-                && configValueGetMethod != null && hearingRangeValue != null;
+        return blockAttractionMethod != null && messageScoreConstructor != null;
     }
 
     private static void reportVocalMuteFailure(Throwable exception) {

@@ -1,6 +1,7 @@
 package com.Theus452.walkietalkie.util;
 
 import com.Theus452.walkietalkie.block.WalkieTalkieBlockEntity;
+import com.Theus452.walkietalkie.compat.AttractToChatCompat;
 import com.Theus452.walkietalkie.networking.WalkieBlockRegistry;
 import com.Theus452.walkietalkie.sound.ModSounds;
 import net.minecraft.ChatFormatting;
@@ -62,7 +63,10 @@ public final class WalkieMessageHelper {
 
         sender.sendSystemMessage(createWalkieTalkieMessage(sender, rawText, frequency, countWalkieTalkies(sender) > 1));
         if (ModSounds.WALKIE_TALKIE_SEND_MSG != null) {
-            sender.playNotifySound(ModSounds.WALKIE_TALKIE_SEND_MSG.get(), SoundSource.PLAYERS, 1.0F, 1.0F);
+            try {
+                sender.playNotifySound(ModSounds.WALKIE_TALKIE_SEND_MSG.get(), SoundSource.PLAYERS, 1.0F, 1.0F);
+            } catch (RuntimeException ignored) {
+            }
         }
 
         Set<ServerPlayer> recipients = new HashSet<>();
@@ -88,6 +92,7 @@ public final class WalkieMessageHelper {
             if (level == null) continue;
             BlockEntity be = level.getBlockEntity(globalPos.pos());
             if (be instanceof WalkieTalkieBlockEntity walkie && walkie.isActive()) {
+                AttractToChatCompat.attractMobsAtBlock(sender, level, walkie.getBlockPos(), rawText);
                 double x = globalPos.pos().getX() + 0.5D;
                 double y = globalPos.pos().getY() + 0.5D;
                 double z = globalPos.pos().getZ() + 0.5D;
@@ -113,7 +118,10 @@ public final class WalkieMessageHelper {
             recipient.sendSystemMessage(messageToSend);
             IncomingMessageSoundLimiter.SoundDecision soundDecision = IncomingMessageSoundLimiter.evaluate(recipient);
             if (!blockRecipients.contains(recipient) && soundDecision.shouldPlay() && ModSounds.WALKIE_TALKIE_MSG_RECEIVER != null) {
-                recipient.playNotifySound(ModSounds.WALKIE_TALKIE_MSG_RECEIVER.get(), SoundSource.PLAYERS, soundDecision.volume(), soundDecision.pitch());
+                try {
+                    recipient.playNotifySound(ModSounds.WALKIE_TALKIE_MSG_RECEIVER.get(), SoundSource.PLAYERS, soundDecision.volume(), soundDecision.pitch());
+                } catch (RuntimeException ignored) {
+                }
             }
         }
 

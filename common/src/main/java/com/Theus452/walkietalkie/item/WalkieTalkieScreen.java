@@ -67,7 +67,7 @@ public class WalkieTalkieScreen extends Screen {
             frequency = 1;
         }
 
-        Platform.HELPER.sendToServer(new PacketSetFrequency(String.valueOf(frequency), this.hand));
+        Platform.getHelper().sendToServer(new PacketSetFrequency(String.valueOf(frequency), this.hand));
 
         if (this.minecraft != null) {
             this.minecraft.setScreen(null);

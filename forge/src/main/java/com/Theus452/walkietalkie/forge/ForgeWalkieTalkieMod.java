@@ -3,13 +3,17 @@ package com.Theus452.walkietalkie.forge;
 import com.Theus452.walkietalkie.WalkieTalkieMod;
 import com.Theus452.walkietalkie.forge.block.ForgeBlocks;
 import com.Theus452.walkietalkie.forge.config.ForgeModConfigs;
+import com.Theus452.walkietalkie.forge.event.ForgeEvents;
 import com.Theus452.walkietalkie.forge.item.ForgeCreativeTabs;
 import com.Theus452.walkietalkie.forge.item.ForgeItems;
 import com.Theus452.walkietalkie.forge.networking.ForgePacketHandler;
 import com.Theus452.walkietalkie.forge.sounds.ForgeSounds;
 import com.Theus452.walkietalkie.item.ModCreativeModTabs;
 import com.Theus452.walkietalkie.item.ModItems;
+import com.Theus452.walkietalkie.platform.Platform;
+import com.Theus452.walkietalkie.forge.platform.ForgePlatformHelper;
 import com.Theus452.walkietalkie.sound.ModSounds;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
@@ -21,6 +25,8 @@ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 public class ForgeWalkieTalkieMod {
 
     public ForgeWalkieTalkieMod() {
+        Platform.setHelper(new ForgePlatformHelper());
+
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
 
         ForgeBlocks.register(modEventBus);
@@ -37,6 +43,7 @@ public class ForgeWalkieTalkieMod {
 
         ModLoadingContext.get().registerConfig(ModConfig.Type.SERVER, ForgeModConfigs.SPEC);
         ForgePacketHandler.register();
+        MinecraftForge.EVENT_BUS.register(new ForgeEvents());
 
         modEventBus.addListener(this::commonSetup);
     }

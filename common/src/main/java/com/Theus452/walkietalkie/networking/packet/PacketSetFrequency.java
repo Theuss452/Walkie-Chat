@@ -3,7 +3,9 @@ package com.Theus452.walkietalkie.networking.packet;
 import com.Theus452.walkietalkie.item.WalkieTalkieItem;
 import com.Theus452.walkietalkie.sound.ModSounds;
 import com.Theus452.walkietalkie.util.ConnectionManager;
+import net.minecraft.ChatFormatting;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
@@ -42,6 +44,7 @@ public class PacketSetFrequency {
         }
 
         WalkieTalkieItem.setFrequency(stack, packet.newFrequency);
+        player.sendSystemMessage(Component.translatable("message.walkietalkie.join.self", packet.newFrequency).withStyle(ChatFormatting.GREEN));
         player.playNotifySound(ModSounds.WALKIE_TALKIE_CHANGE_CHANNEL.get(), SoundSource.PLAYERS, 1.0F, 1.0F);
         ConnectionManager.disconnectImmediatelyIfAbsent(player, oldFrequency);
         ConnectionManager.refreshPlayer(player);

@@ -5,7 +5,7 @@
 	"texture_size": [32, 32],
 	"textures": {
 		"0": "walkietalkie:item/walkie_talkie3d",
-		"particle": "walkietalkie:walkie_talkie3d"
+		"particle": "walkietalkie:item/walkie_talkie3d"
 	},
 	"elements": [
 		{

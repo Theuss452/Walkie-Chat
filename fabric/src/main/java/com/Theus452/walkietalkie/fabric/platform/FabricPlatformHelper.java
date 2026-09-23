@@ -2,6 +2,8 @@ package com.Theus452.walkietalkie.fabric.platform;
 
 import com.Theus452.walkietalkie.fabric.config.FabricModConfigs;
 import com.Theus452.walkietalkie.fabric.networking.FabricPacketHandler;
+import com.Theus452.walkietalkie.networking.packet.C2S_ToggleBlockRelayPacket;
+import com.Theus452.walkietalkie.networking.packet.C2S_WalkieBlockMessagePacket;
 import com.Theus452.walkietalkie.networking.packet.PacketSetBlockFrequency;
 import com.Theus452.walkietalkie.networking.packet.PacketSetFrequency;
 import com.Theus452.walkietalkie.platform.IPlatformHelper;
@@ -22,6 +24,14 @@ public class FabricPlatformHelper implements IPlatformHelper {
             FriendlyByteBuf buf = PacketByteBufs.create();
             p.toBytes(buf);
             ClientPlayNetworking.send(FabricPacketHandler.SET_BLOCK_FREQUENCY_ID, buf);
+        } else if (packet instanceof C2S_WalkieBlockMessagePacket p) {
+            FriendlyByteBuf buf = PacketByteBufs.create();
+            p.toBytes(buf);
+            ClientPlayNetworking.send(FabricPacketHandler.WALKIE_BLOCK_MESSAGE_ID, buf);
+        } else if (packet instanceof C2S_ToggleBlockRelayPacket p) {
+            FriendlyByteBuf buf = PacketByteBufs.create();
+            p.toBytes(buf);
+            ClientPlayNetworking.send(FabricPacketHandler.TOGGLE_BLOCK_RELAY_ID, buf);
         }
     }
 

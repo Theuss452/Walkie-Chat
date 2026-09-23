@@ -51,10 +51,8 @@ public final class WalkieBlockMessageRelay {
             if (!block.getFrequency().equals(message.frequency)) continue;
             ServerPlayer sender = server.getPlayerList().getPlayer(message.senderId);
             if (sender == null) continue;
-            if (!message.attractionTriggered) {
-                message.attractionTriggered = true;
-                AttractToChatCompat.attractMobsAtBlock(sender, level, block.getBlockPos(), message.rawText);
-            }
+            AttractToChatCompat.attractMobsAtBlock(sender, level, block.getBlockPos(), message.rawText);
+            message.attractionTriggered = true;
             AABB listenerBounds = new AABB(block.getBlockPos()).inflate(8.0D);
             Collection<ServerPlayer> soundListeners = new ArrayList<>();
             double x = block.getBlockPos().getX() + 0.5D;

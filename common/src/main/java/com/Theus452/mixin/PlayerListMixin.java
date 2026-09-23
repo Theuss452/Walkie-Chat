@@ -41,7 +41,7 @@ public abstract class PlayerListMixin {
             return;
         }
 
-        double range = Platform.HELPER.getChatRange();
+        double range = Platform.getHelper().getChatRange();
         double rangeSqr = range * range;
         
         int recipientsFound = 0;

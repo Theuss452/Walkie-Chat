@@ -9,6 +9,8 @@ import com.Theus452.walkietalkie.fabric.item.FabricCreativeTabs;
 import com.Theus452.walkietalkie.fabric.networking.FabricPacketHandler;
 import com.Theus452.walkietalkie.fabric.item.FabricItems;
 import com.Theus452.walkietalkie.fabric.sounds.FabricSounds;
+import com.Theus452.walkietalkie.platform.Platform;
+import com.Theus452.walkietalkie.fabric.platform.FabricPlatformHelper;
 import net.fabricmc.api.ModInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,6 +21,8 @@ public class FabricWalkieTalkieMod implements ModInitializer {
     @Override
     public void onInitialize() {
         LOGGER.info("Walkie-Talkie Mod for Fabric...");
+
+        Platform.setHelper(new FabricPlatformHelper());
 
         FabricCreativeTabs.register();
         FabricBlocks.register();

@@ -1,6 +1,6 @@
 package com.Theus452.walkietalkie.fabric.client;
 
-import com.Theus452.walkietalkie.WalkieTalkieMod;;
+import com.Theus452.walkietalkie.WalkieTalkieMod;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.model.ModelLoadingRegistry;
 import net.minecraft.client.resources.model.ModelResourceLocation;

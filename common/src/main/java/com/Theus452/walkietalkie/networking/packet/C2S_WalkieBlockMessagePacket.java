@@ -42,5 +42,9 @@ public class C2S_WalkieBlockMessagePacket {
         if (blockEntity == null || !blockEntity.isActive() || !blockEntity.isRelayEnabled()) return;
         if (!frequency.equals(blockEntity.getFrequency())) return;
         if (!ServerRateLimiter.allow(player, "walkietalkie:message_block", 5L)) return;
+
+        if (player.getServer() != null) {
+            com.Theus452.walkietalkie.util.WalkieMessageHelper.broadcastMessage(player.getServer(), player, frequency, message);
+        }
     }
 }

@@ -10,7 +10,8 @@
     "MsgCommandMixin",
     "PlayerListMixin",
     "PlayerInventoryMixin",
-    "ServerPlayerMixin"
+    "ServerPlayerMixin",
+    "ServerGamePacketListenerImplMixin"
   ],
   "injectors": {
     "defaultRequire": 1

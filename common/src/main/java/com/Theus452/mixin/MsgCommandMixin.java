@@ -28,7 +28,7 @@ public abstract class MsgCommandMixin {
             return targets;
         }
 
-        double range = Platform.HELPER.getChatRange();
+        double range = Platform.getHelper().getChatRange();
         double rangeSqr = range * range;
         List<ServerPlayer> nearbyTargets = new ArrayList<>();
 

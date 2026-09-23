@@ -51,15 +51,15 @@ public class WalkieTalkieBlock extends BaseEntityBlock {
     public static final DirectionProperty FACING = HorizontalDirectionalBlock.FACING;
     public static final BooleanProperty WALL = BooleanProperty.create("wall");
 
-    private static final VoxelShape SHAPE_NORTH = Block.box(4.0, 0.0, 4.0, 12.0, 8.0, 12.0);
-    private static final VoxelShape SHAPE_SOUTH = Block.box(4.0, 0.0, 4.0, 12.0, 8.0, 12.0);
-    private static final VoxelShape SHAPE_EAST = Block.box(4.0, 0.0, 4.0, 12.0, 8.0, 12.0);
-    private static final VoxelShape SHAPE_WEST = Block.box(4.0, 0.0, 4.0, 12.0, 8.0, 12.0);
+    private static final VoxelShape SHAPE_NORTH = Block.box(4.5, 0.0, 6.5, 11.5, 14.0, 9.5);
+    private static final VoxelShape SHAPE_SOUTH = Block.box(4.5, 0.0, 6.5, 11.5, 14.0, 9.5);
+    private static final VoxelShape SHAPE_EAST = Block.box(6.5, 0.0, 4.5, 9.5, 14.0, 11.5);
+    private static final VoxelShape SHAPE_WEST = Block.box(6.5, 0.0, 4.5, 9.5, 14.0, 11.5);
 
-    private static final VoxelShape WALL_SHAPE_NORTH = Block.box(4.0, 3.0, 9.0, 12.0, 13.0, 16.0);
-    private static final VoxelShape WALL_SHAPE_SOUTH = Block.box(4.0, 3.0, 0.0, 12.0, 13.0, 7.0);
-    private static final VoxelShape WALL_SHAPE_EAST = Block.box(0.0, 3.0, 4.0, 7.0, 13.0, 12.0);
-    private static final VoxelShape WALL_SHAPE_WEST = Block.box(9.0, 3.0, 4.0, 16.0, 13.0, 12.0);
+    private static final VoxelShape WALL_SHAPE_NORTH = Block.box(4.5, 0.0, 0.0, 11.5, 14.0, 3.0);
+    private static final VoxelShape WALL_SHAPE_SOUTH = Block.box(4.5, 0.0, 13.0, 11.5, 14.0, 16.0);
+    private static final VoxelShape WALL_SHAPE_EAST = Block.box(13.0, 0.0, 4.5, 16.0, 14.0, 11.5);
+    private static final VoxelShape WALL_SHAPE_WEST = Block.box(0.0, 0.0, 4.5, 3.0, 14.0, 11.5);
 
     public WalkieTalkieBlock() {
         super(BlockBehaviour.Properties.of(Material.HEAVY_METAL)
