@@ -7,6 +7,7 @@
   "sounds.walkietalkie.msg_receiver": "Mensaje recibido del Walkie Talkie",
 
   "creativetab.walkietalkie_tab": "Walkie Talkie Mod",
+  "itemGroup.walkietalkie.walkietalkie_tab": "Walkie Talkie Mod",
 
   "message.walkietalkie.no_one_nearby": "§7No hay nadie cerca para escucharte. ¡Usa un Walkie-Talkie!",
   "message.walkietalkie.define.frequency": "§7¡Sin frecuencia definida!",
